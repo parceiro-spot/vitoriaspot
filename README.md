@@ -8,3 +8,6 @@ Arquivos separados do `meuSITESPOT.txt`.
 - **Sinistro > Mensagens** com edição manual, adição de título, negrito, cor e salvar. As mensagens originais não foram alteradas.
 
 Abra `index.html` diretamente ou publique os três arquivos juntos. O armazenamento usa `localStorage` do navegador.
+
+- Navegação corrigida para todas as opções do menu, incluindo PNR e Reuniões.
+- Reuniões permitem adicionar novas informações, escolher cor, usar negrito, editar e salvar após F5.

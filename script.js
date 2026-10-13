@@ -215,14 +215,9 @@ function openSection(sectionId) {
   if (loading) loading.classList.remove('hidden');
   document.getElementById('menu-overlay').classList.add('hidden');
   
-  setTimeout(() => {
-    if (loading) loading.classList.add('hidden');
-    const section = document.getElementById(sectionId);
-    if (section) {
-      section.classList.remove('hidden');
-      section.scrollTop = 0;
-    }
-  }, 400);
+  if (loading) loading.classList.add('hidden');
+  const section = document.getElementById(sectionId);
+  if (section) { section.classList.remove('hidden'); section.scrollTop = 0; }
 }
 
 // ==================== JOGO DO CAMINHÃO/VAN PARCEIRO SPOT ====================
@@ -607,6 +602,46 @@ const Game = {
 function restartGame() {
   Game.restart();
 }
+
+
+// ===== NAVEGAÇÃO ROBUSTA =====
+// Mantém as seções acessíveis mesmo quando o arquivo é aberto localmente ou após F5.
+(function hardenNavigation(){
+  const validSections=new Set(['pacotes','profarma','sinistro','info','pnr','reunioes']);
+  const originalOpenSection=window.openSection;
+  window.openSection=function(sectionId){
+    const id=String(sectionId||'');
+    if(!validSections.has(id))return;
+    if(typeof Game!=='undefined'&&Game&&typeof Game.pause==='function')Game.pause();
+    document.querySelectorAll('.section').forEach(section=>section.classList.add('hidden'));
+    const menu=document.getElementById('menu-overlay'); if(menu)menu.classList.add('hidden');
+    const loading=document.getElementById('loading-screen'); if(loading)loading.classList.add('hidden');
+    const section=document.getElementById(id);
+    if(section){section.classList.remove('hidden');section.scrollTop=0;}
+  };
+  document.addEventListener('click',event=>{
+    const button=event.target.closest('.menu-btn');
+    if(button){const match=button.getAttribute('onclick')?.match(/openSection\(['"]([^'"]+)['"]\)/);if(match){event.preventDefault();window.openSection(match[1]);}}
+  },true);
+})();
+
+// ===== REUNIÕES MANUAIS =====
+(function initMeetingsEditor(){
+  const KEY='spot_manual_meetings_v1';
+  const list=document.getElementById('custom-meetings-list');
+  const add=document.querySelector('[data-add-meeting]');
+  if(!list||!add)return;
+  const state=document.querySelector('[data-meeting-state]');
+  const load=()=>{try{const v=JSON.parse(localStorage.getItem(KEY));return Array.isArray(v)?v:[];}catch(e){return[];}};
+  const save=items=>{try{localStorage.setItem(KEY,JSON.stringify(items));}catch(e){}};
+  let items=load();
+  const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const flash=text=>{if(state){state.textContent=text;setTimeout(()=>state.textContent='',2000);}};
+  const render=()=>{list.innerHTML=items.map((item,i)=>`<div class="meeting-item custom-meeting" data-meeting-index="${i}"><div class="meeting-editor-grid"><label>Dia/título<input data-meeting-day value="${esc(item.day)}"></label><label>Horário<input data-meeting-time value="${esc(item.time)}"></label><label class="meeting-wide">Informação<input data-meeting-info value="${esc(item.info)}"></label></div><div class="meeting-editor-actions"><label>Cor <input type="color" data-meeting-color value="${item.color||'#6da22b'}"></label><label><input type="checkbox" data-meeting-bold ${item.bold?'checked':''}> Negrito</label><button type="button" class="editor-btn primary" data-save-meeting>Salvar</button><button type="button" class="editor-btn" data-delete-meeting>Excluir</button></div><div class="meeting-preview"><span class="meeting-day" style="color:${item.color||'#6da22b'}">${esc(item.day||'DIA')}</span><p style="${item.bold?'font-weight:800;':''}"><strong>${esc(item.time||'--:--')}</strong> - ${esc(item.info||'Nova informação')}</p></div></div>`).join('');};
+  add.addEventListener('click',()=>{items.push({day:'NOVO DIA',time:'00:00',info:'Nova informação',color:'#6da22b',bold:false});save(items);render();flash('Reunião adicionada');});
+  list.addEventListener('click',event=>{const card=event.target.closest('[data-meeting-index]');if(!card)return;const i=Number(card.dataset.meetingIndex);if(event.target.matches('[data-delete-meeting]')){items.splice(i,1);save(items);render();flash('Reunião excluída');}if(event.target.matches('[data-save-meeting]')){items[i]={day:card.querySelector('[data-meeting-day]').value,time:card.querySelector('[data-meeting-time]').value,info:card.querySelector('[data-meeting-info]').value,color:card.querySelector('[data-meeting-color]').value,bold:card.querySelector('[data-meeting-bold]').checked};save(items);render();flash('Reunião salva');}});
+  render();
+})();
 
 // ===== EDITORES MANUAIS =====
 (function initManualEditors(){
