@@ -272,6 +272,12 @@ const Game = {
     
     document.addEventListener('keydown', (e) => {
       if (e.code === 'Space' || e.code === 'ArrowUp') {
+        const target = e.target;
+        const isEditing = target && (
+          target.isContentEditable ||
+          ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+        );
+        if (isEditing) return;
         e.preventDefault();
         this.jump();
       }
@@ -641,9 +647,11 @@ function restartGame() {
   const save=items=>{try{localStorage.setItem(KEY,JSON.stringify(items));}catch(e){}};
   let items=load();
   const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const flash=text=>{if(state){state.textContent=text;setTimeout(()=>state.textContent='',2000);}};
+  const flash=(text,kind='saved')=>{if(state){state.textContent=kind==='saved'?`✓ ${text} — salvo neste navegador`:kind==='dirty'?`● ${text} — clique em Salvar`:`○ ${text}`;state.dataset.status=kind;}};
   const render=()=>{list.innerHTML=items.map((item,i)=>`<div class="meeting-item custom-meeting" data-meeting-index="${i}"><div class="meeting-editor-grid"><label>Dia/título<input data-meeting-day value="${esc(item.day)}"></label><label>Horário<input data-meeting-time value="${esc(item.time)}"></label><label class="meeting-wide">Informação<input data-meeting-info value="${esc(item.info)}"></label></div><div class="meeting-editor-actions"><label>Cor <input type="color" data-meeting-color value="${item.color||'#6da22b'}"></label><label><input type="checkbox" data-meeting-bold ${item.bold?'checked':''}> Negrito</label><button type="button" class="editor-btn primary" data-save-meeting>Salvar</button><button type="button" class="editor-btn" data-delete-meeting>Excluir</button></div><div class="meeting-preview"><span class="meeting-day" style="color:${item.color||'#6da22b'}">${esc(item.day||'DIA')}</span><p style="${item.bold?'font-weight:800;':''}"><strong>${esc(item.time||'--:--')}</strong> - ${esc(item.info||'Nova informação')}</p></div></div>`).join('');};
+  flash(items.length?'Reuniões carregadas':'Nenhuma reunião personalizada salva',items.length?'saved':'empty');
   add.addEventListener('click',()=>{items.push({day:'NOVO DIA',time:'00:00',info:'Nova informação',color:'#6da22b',bold:false});save(items);render();flash('Reunião adicionada');});
+  list.addEventListener('input',()=>flash('Alterações não salvas','dirty'));
   list.addEventListener('click',event=>{const card=event.target.closest('[data-meeting-index]');if(!card)return;const i=Number(card.dataset.meetingIndex);if(event.target.matches('[data-delete-meeting]')){items.splice(i,1);save(items);render();flash('Reunião excluída');}if(event.target.matches('[data-save-meeting]')){items[i]={day:card.querySelector('[data-meeting-day]').value,time:card.querySelector('[data-meeting-time]').value,info:card.querySelector('[data-meeting-info]').value,color:card.querySelector('[data-meeting-color]').value,bold:card.querySelector('[data-meeting-bold]').checked};save(items);render();flash('Reunião salva');}});
   render();
 })();
@@ -654,36 +662,40 @@ function restartGame() {
   const qs=(s,r=document)=>r.querySelector(s), qsa=(s,r=document)=>Array.from(r.querySelectorAll(s));
   const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){console.warn('Não foi possível salvar',e);}};
   const load=(k,f)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?f:v;}catch(e){return f;}};
-  const state=(el,text)=>{if(el){el.textContent=text;setTimeout(()=>{el.textContent='';},2200);}};
+  const state=(el,text,kind='saved')=>{if(el){el.textContent=kind==='saved'?`✓ ${text} — salvo neste navegador`:kind==='dirty'?`● ${text} — clique em Salvar`:`○ ${text}`;el.dataset.status=kind;}};
   function setupProfarma(){
     const area=qs('#profarma-manual-content'); if(!area)return;
-    const saved=load(PROF_KEY,null); if(saved) area.innerHTML=saved;
+    const status=qs('[data-profarma-state]'), saved=load(PROF_KEY,null); if(saved){area.innerHTML=saved;state(status,'Salvo');}else state(status,'Ainda não salvo','empty');
     let editing=false;
+    area.addEventListener('input',()=>state(status,'Alterações não salvas','dirty'));
     qs('[data-edit-profarma]')?.addEventListener('click',()=>{editing=!editing;area.contentEditable=String(editing);area.classList.toggle('manual-editing',editing);});
-    qs('[data-add-profarma-title]')?.addEventListener('click',()=>{const h=document.createElement('h3');h.textContent='Novo título';area.prepend(h);h.focus();});
+    qs('[data-add-profarma-title]')?.addEventListener('click',()=>{const h=document.createElement('h3');h.textContent='Novo título';area.prepend(h);h.focus();state(status,'Alterações não salvas','dirty');});
     qs('[data-format-profarma]')?.addEventListener('click',()=>document.execCommand('bold'));
     qs('[data-color-profarma]')?.addEventListener('input',e=>{document.execCommand('foreColor',false,e.target.value);});
-    qs('[data-save-profarma]')?.addEventListener('click',()=>{save(PROF_KEY,area.innerHTML);state(qs('[data-profarma-state]'),'Tutorial salvo');});
+    qs('[data-save-profarma]')?.addEventListener('click',()=>{save(PROF_KEY,area.innerHTML);state(status,'Tutorial salvo');});
   }
   function setupMessages(){
     const card=qs('.sinistro-messages-card'); if(!card)return;
-    const boxes=qsa('.copy-box',card), saved=load(MSG_KEY,null), savedTitles=load(MSG_TITLE_KEY,[]);
-    if(saved&&Array.isArray(saved)) boxes.forEach((b,i)=>{if(saved[i]!=null)b.innerHTML=saved[i];});
+    const boxes=qsa('.copy-box',card), status=qs('[data-messages-state]'), saved=load(MSG_KEY,null), savedTitles=load(MSG_TITLE_KEY,[]);
+    if(saved&&Array.isArray(saved)){boxes.forEach((b,i)=>{if(saved[i]!=null)b.innerHTML=saved[i];});state(status,'Salvo');}else state(status,'Ainda não salvo','empty');
     savedTitles.forEach(title=>{const h=document.createElement('h4');h.textContent=title;h.dataset.manualTitle='1';card.insertBefore(h,boxes[0]||null);});
     let editing=false;
+    boxes.forEach(b=>b.addEventListener('input',()=>state(status,'Alterações não salvas','dirty')));
     qs('[data-edit-messages]')?.addEventListener('click',()=>{editing=!editing;boxes.forEach(b=>{b.contentEditable=String(editing);b.classList.toggle('message-editing',editing);});});
-    qs('[data-add-message-title]')?.addEventListener('click',()=>{const h=document.createElement('h4');h.textContent='Novo título de mensagem';h.dataset.manualTitle='1';card.insertBefore(h,boxes[0]||null);});
+    qs('[data-add-message-title]')?.addEventListener('click',()=>{const h=document.createElement('h4');h.textContent='Novo título de mensagem';h.dataset.manualTitle='1';card.insertBefore(h,boxes[0]||null);state(status,'Alterações não salvas','dirty');});
     qs('[data-format-messages]')?.addEventListener('click',()=>document.execCommand('bold'));
     qs('[data-color-messages]')?.addEventListener('input',e=>{document.execCommand('foreColor',false,e.target.value);});
-    qs('[data-save-messages]')?.addEventListener('click',()=>{save(MSG_KEY,boxes.map(b=>b.innerHTML));save(MSG_TITLE_KEY,qsa('[data-manual-title]',card).map(h=>h.textContent));state(qs('[data-messages-state]'),'Mensagens salvas');});
+    qs('[data-save-messages]')?.addEventListener('click',()=>{save(MSG_KEY,boxes.map(b=>b.innerHTML));save(MSG_TITLE_KEY,qsa('[data-manual-title]',card).map(h=>h.textContent));state(status,'Mensagens salvas');});
   }
-  function noteTemplate(n,i){return `<article class="pnr-note ${n.minimized?'minimized':''}" data-pnr-index="${i}"><div class="pnr-note-head"><input class="pnr-title" value="${esc(n.title)}" style="color:${n.titleColor||'#111827'}"><button type="button" class="editor-btn" data-pnr-toggle>${n.minimized?'Mostrar':'Minimizar'}</button><button type="button" class="editor-btn" data-pnr-delete>Excluir</button></div><textarea class="pnr-description" style="color:${n.descriptionColor||'#111827'}" placeholder="Descrição">${esc(n.description)}</textarea><div class="pnr-actions"><label>Cor do título <input type="color" data-pnr-title-color value="${n.titleColor||'#111827'}"></label><label>Cor da descrição <input type="color" data-pnr-description-color value="${n.descriptionColor||'#111827'}"></label><button type="button" data-pnr-save>Salvar bloco</button></div></article>`;}
+  function noteTemplate(n,i){return `<article class="pnr-note ${n.minimized?'minimized ':''}${n.expanded?'expanded':''}" data-pnr-index="${i}"><div class="pnr-note-head"><button type="button" class="pnr-note-title" data-pnr-toggle style="color:${n.titleColor||'#111827'}">${esc(n.title||'Sem título')}</button><button type="button" class="editor-btn pnr-back" data-pnr-back>Voltar para bloco de notas</button><button type="button" class="editor-btn" data-pnr-delete>Excluir</button></div><div class="pnr-note-editor"><input class="pnr-title" value="${esc(n.title)}" style="color:${n.titleColor||'#111827'}" aria-label="Título do bloco"><textarea class="pnr-description" style="color:${n.descriptionColor||'#111827'}" placeholder="Descrição">${esc(n.description)}</textarea><div class="pnr-actions"><label>Cor do título <input type="color" data-pnr-title-color value="${n.titleColor||'#111827'}"></label><label>Cor da descrição <input type="color" data-pnr-description-color value="${n.descriptionColor||'#111827'}"></label><button type="button" class="editor-btn primary" data-pnr-save>Salvar bloco</button></div></div></article>`;}
   function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function setupPNR(){
-    const list=qs('#pnr-notes-list');if(!list)return;let notes=load(PNR_KEY,[]);const render=()=>{list.innerHTML=notes.length?notes.map(noteTemplate).join(''):'<p class="manual-help">Nenhum bloco criado ainda. Clique em “Adicionar bloco”.</p>';};
-    qs('[data-add-pnr]')?.addEventListener('click',()=>{notes.push({title:'Novo título',description:'Escreva sua anotação aqui.',titleColor:'#111827',descriptionColor:'#111827',minimized:false});render();state(qs('[data-pnr-state]'),'Bloco adicionado');});
-    list.addEventListener('click',e=>{const note=e.target.closest('.pnr-note');if(!note)return;const i=Number(note.dataset.pnrIndex);if(e.target.matches('[data-pnr-toggle]')){notes[i].minimized=!notes[i].minimized;render();}else if(e.target.matches('[data-pnr-delete]')){notes.splice(i,1);save(PNR_KEY,notes);render();}else if(e.target.matches('[data-pnr-save]')){notes[i].title=qs('.pnr-title',note).value;notes[i].description=qs('.pnr-description',note).value;notes[i].titleColor=qs('[data-pnr-title-color]',note).value;notes[i].descriptionColor=qs('[data-pnr-description-color]',note).value;save(PNR_KEY,notes);state(qs('[data-pnr-state]'),'PNR salvo');}});
-    list.addEventListener('input',e=>{const note=e.target.closest('.pnr-note');if(!note)return;if(e.target.matches('[data-pnr-title-color]'))qs('.pnr-title',note).style.color=e.target.value;if(e.target.matches('[data-pnr-description-color]'))qs('.pnr-description',note).style.color=e.target.value;});render();
+    const list=qs('#pnr-notes-list'),status=qs('[data-pnr-state]');if(!list)return;let notes=load(PNR_KEY,[]);const render=()=>{list.innerHTML=notes.length?notes.map(noteTemplate).join(''):'<p class="manual-help">Nenhum bloco criado ainda. Clique em “Adicionar bloco”.</p>';};
+    state(status,notes.length?'Salvo':'Nada salvo ainda',notes.length?'saved':'empty');
+    qs('[data-add-pnr]')?.addEventListener('click',()=>{notes.push({title:'Novo título',description:'Escreva sua anotação aqui.',titleColor:'#111827',descriptionColor:'#111827',minimized:false,expanded:true});render();state(status,'Alterações não salvas','dirty');});
+    list.addEventListener('click',e=>{const note=e.target.closest('.pnr-note');if(!note)return;const i=Number(note.dataset.pnrIndex);if(e.target.matches('[data-pnr-toggle]')){notes[i].minimized=false;notes[i].expanded=true;render();}else if(e.target.matches('[data-pnr-back]')){notes[i].minimized=true;notes[i].expanded=false;render();}else if(e.target.matches('[data-pnr-delete]')){notes.splice(i,1);save(PNR_KEY,notes);render();state(status,'PNR atualizado');}else if(e.target.matches('[data-pnr-save]')){notes[i].title=qs('.pnr-title',note).value;notes[i].description=qs('.pnr-description',note).value;notes[i].titleColor=qs('[data-pnr-title-color]',note).value;notes[i].descriptionColor=qs('[data-pnr-description-color]',note).value;notes[i].minimized=true;notes[i].expanded=false;save(PNR_KEY,notes);render();state(status,'PNR salvo e minimizado');}});
+    list.addEventListener('input',e=>{const note=e.target.closest('.pnr-note');if(!note)return;if(e.target.matches('[data-pnr-title-color]'))qs('.pnr-title',note).style.color=e.target.value;if(e.target.matches('[data-pnr-description-color]'))qs('.pnr-description',note).style.color=e.target.value;state(status,'Alterações não salvas','dirty');});render();
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'){const open=notes.findIndex(n=>n.expanded);if(open>=0){notes[open].minimized=true;notes[open].expanded=false;render();}}});
   }
   function start(){setupProfarma();setupMessages();setupPNR();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
