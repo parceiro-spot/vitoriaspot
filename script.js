@@ -288,7 +288,6 @@ const Game = {
     });
     
     this.restart();
-    this.loop();
   },
   
   resizeCanvas() {
@@ -312,7 +311,7 @@ const Game = {
   resume() {
     if (!this.running && !this.gameOver) {
       this.running = true;
-      this.loop();
+      if (!this.animId) this.loop();
     }
   },
   
@@ -347,6 +346,7 @@ const Game = {
     
     const go = document.getElementById('game-over');
     if (go) go.classList.add('hidden');
+    if (!this.animId) this.loop();
   },
   
   updateScore() {
@@ -434,6 +434,7 @@ const Game = {
         ty + th > obs.y
       ) {
         this.gameOver = true;
+        this.running = false;
         AudioEngine.play('gameover'); // TOCA SOM DE FREADA E COLISÃO
         if (this.score > this.highScore) {
           this.highScore = Math.floor(this.score);
@@ -593,6 +594,10 @@ const Game = {
   },
   
   loop() {
+    if (!this.running || this.gameOver) {
+      this.animId = null;
+      return;
+    }
     this.update();
     this.draw();
     this.animId = requestAnimationFrame(() => this.loop());
