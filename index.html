@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+<!-- This site is hosted on Netlify. Anyone can build and deploy a site
+     like this one for free: https://netlify.new/?utm_campaign=loops&utm_source=ai-legible&utm_medium=owned&utm_content=comment&utm_id=ce4e37da-8d21-4457-a056-073f345aa3fb
+     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assistente de Risco - Parceiro Spot</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- TELA DE CARREGAMENTO -->
+  <div id="loading-screen" class="hidden">
+    <div class="spinner-container">
+      <div class="loading-spinner"></div>
+      <p>Carregando...</p>
+    </div>
+  </div>
+
+  <!-- BOTÕES FIXOS DE NAVEGAÇÃO -->
+  <div id="fixed-nav">
+    <button id="home-btn" onclick="goToMain()" aria-label="Home">
+      <span>HOME</span>
+    </button>
+    <button id="snes-btn" onclick="toggleMenu()" aria-label="Menu">
+      <span>MENU</span>
+    </button>
+  </div>
+
+  <!-- PÁGINA PRINCIPAL -->
+  <div id="main-page">
+    <header class="main-header">
+      <h1 id="user-name">VITÓRIA NASCIMENTO</h1>
+      <p class="sub-title">PARCEIRO SPOT - ASSISTENTE DE RISCO</p>
+    </header>
+
+    <!-- JOGO DO CAMINHÃO -->
+    <div id="game-wrapper">
+      <div id="game-container">
+        <canvas id="gameCanvas" width="800" height="200"></canvas>
+        <div id="game-ui">
+          <div id="score">LVL 1  HI 00000  00000</div>
+          <div id="game-over" class="hidden">
+            <p><span class="go-green">GAME</span> <span class="go-black">OVER</span></p>
+            <button id="restart-btn" onclick="restartGame()">RECOMEÇAR</button>
+          </div>
+        </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MENU OVERLAY -->
+  <div id="menu-overlay" class="hidden" onclick="closeMenu(event)">
+    <div class="menu-box" onclick="event.stopPropagation()">
+      <h2>🎮 MENU</h2>
+      <nav class="menu-buttons">
+        <button class="menu-btn" onclick="openSection('pacotes')">📦 PACOTES</button>
+        <button class="menu-btn" onclick="openSection('profarma')">📊 PROFARMA</button>
+        <button class="menu-btn" onclick="openSection('sinistro')">🚨 SINISTRO</button>
+        <button class="menu-btn" onclick="openSection('info')">📋 INFOS ADICIONAIS</button>
+        <button class="menu-btn" onclick="openSection('pnr')">📝 PNR — BLOCO DE NOTAS</button>
+        <button class="menu-btn" onclick="openSection('reunioes')">📅 REUNIÕES</button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- SEÇÃO PACOTES -->
+  <div id="pacotes" class="section hidden">
+    <div class="section-header">
+      <h2>📦 PACOTES</h2>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('pac-geral', this)">GERAL</button>
+      <button class="tab-btn" onclick="showTab('pac-lor', this)">LOR</button>
+      <button class="tab-btn" onclick="showTab('pac-tutorial', this)">TUTORIAL BANDEJA</button>
+      <button class="tab-btn" onclick="showTab('pac-tratativa', this)">NOVA TRATATIVA</button>
+    </div>
+
+    <div id="pac-geral" class="tab-content active">
+      <!-- PACOTE FALTANTE -->
+      <div class="card">
+        <h3>🔴 1. Pacote Faltante</h3>
+        <p><strong>Explicação:</strong> O pacote faltante é uma <strong>inconsistência de conferência</strong>. Significa que o sistema (ou o papel) diz que a mercadoria deveria estar em um determinado local ou veículo, mas, na hora da contagem física, ela não está lá. É um problema que você descobre antes do caminhão sair ou no ato da entrega, ao notar a ausência do item.</p>
+        <p><strong>Exemplo com o Drive:</strong> O Motorista João encosta na doca para carregar 10 TVs. Você, como assistente de risco, abre a planilha <em>"Controle de Carregamento Diário"</em> no Google Drive. O João te liga e diz: <em>"Chefe, bipedeei tudo aqui e só deu 9 caixas"</em>. Você entra no Drive, atualiza a planilha marcando aquela 10ª TV em <span style="color:#e74c3c">vermelho</span> como <strong>"Faltante"</strong> e avisa a equipe do pátio para <strong>não liberarem o manifesto completo</strong>.</p>
+        <p><strong>Causas (Por que acontece?):</strong></p>
+        <ul>
+          <li>❌ <strong>Erro de Triagem/Separação:</strong> O operador do armazém colocou a caixa na gaiola errada ou esqueceu de tirar da prateleira.</li>
+          <li>❌ <strong>Furo de Estoque:</strong> O sistema mostrava que o produto existia no galpão, mas ele já tinha saído em outra rota dias atrás e ninguém deu baixa.</li>
+          <li>❌ <strong>Furto Interno:</strong> O item foi desviado de dentro do próprio CD (Centro de Distribuição) antes de chegar na doca de carregamento.</li>
+        </ul>
+      </div>
+
+      <!-- PACOTE VOANDO (SOBRA) -->
+      <div class="card">
+        <h3>🟡 2. Pacote Voando (Sobra)</h3>
+        <p><strong>Explicação:</strong> O pacote voando é o <strong>oposto do faltante</strong>; é uma mercadoria sem dono aparente na rota. O item está fisicamente dentro de um veículo ou de uma rota, mas não existe nenhuma nota fiscal ou registro no manifesto daquele motorista que justifique ele estar ali. Ele está <strong>"viajando" de carona</strong>.</p>
+        <p><strong>Exemplo com o Drive:</strong> O Motorista Sérgio está lá na rota da Zona Norte e te manda uma mensagem: <em>"Achei uma caixa de TV aqui no baú, mas eu só tenho rota de geladeira"</em>. Você abre a pasta do Drive chamada <em>"Sobras e Ocorrências de Rota"</em>, cria uma linha nova e joga os dados da etiqueta que o Sérgio te passou. É aí que você faz a <strong>junção</strong>: olhando a planilha do João (do tópico anterior), você vê que a TV que está faltando para o João é <strong>exatamente a TV que está voando com o Sérgio</strong>. O erro foi que colocaram a caixa no caminhão errado.</p>
+        <p><strong>Causas (Por que acontece?):</strong></p>
+        <ul>
+          <li>❌ <strong>Correria no Carregamento:</strong> Duas docas próximas carregando ao mesmo tempo; o ajudante se confundiu e jogou a caixa no baú do lado.</li>
+          <li>❌ <strong>Etiqueta Duplicada ou Errada:</strong> O sistema imprimiu a etiqueta de rota errada na caixa, enganando o conferente que colocou o pacote para o motorista errado.</li>
+          <li>❌ <strong>Falta de Bipagem na Saída:</strong> O motorista ou o conferente colocou o item no caminhão "no olho", sem bipar o código de barras que acusaria que aquela rota não era dele.</li>
+        </ul>
+      </div>
+
+      <!-- PACOTE PERDIDO -->
+      <div class="card">
+        <h3>⚫ 3. Pacote Perdido</h3>
+        <p><strong>Explicação:</strong> O pacote perdido é o <strong>pior cenário</strong> para o gerenciamento de risco. É quando um item que estava como "Faltante" passa por todo o processo de busca, averiguação de câmeras, checagem de planilhas de "Sobra" (Voando), e mesmo assim <strong>não é encontrado em lugar nenhum</strong>. Ele deixa de ser um erro de processo e vira um <strong>prejuízo financeiro (sinistro)</strong>.</p>
+        <p><strong>Exemplo com o Drive:</strong> Dias depois daquela confusão do João e do Sérgio, surge um caso novo. Uma caixa de celulares sumiu. Você vasculha a planilha do Drive de "Sobras" de todos os motoristas da semana e ninguém achou nada. Você abre a planilha oficial de <em>"Relatório de Sinistros e Perdas"</em> no Drive, joga o valor da mercadoria lá e inicia o processo de <strong>acionamento do seguro ou desconto</strong>, porque o prazo de busca estourou e o pacote foi considerado officially perdido.</p>
+        <p><strong>Causas (Por que acontece?):</strong></p>
+        <ul>
+          <li>❌ <strong>Roubo/Furto de Carga:</strong> O caminhão foi abordado na rua, ou o pacote foi furtado em uma parada não autorizada do motorista.</li>
+          <li>❌ <strong>Entrega Indevida (Troca de Cliente):</strong> O motorista entregou o pacote por engano para o Cliente A (que agiu de má fé, aceitou e não avisou), e o pacote agora está fazendo falta para o Cliente B.</li>
+          <li>❌ <strong>Descarte ou Extravio Total:</strong> A etiqueta da mercadoria rasgou completamente, a caixa molhou/danificou e foi jogada em algum canto do armazém sem identificação nenhuma, tornando impossível saber de quem era.</li>
+        </ul>
+      </div>
+
+      <!-- RESUMO DAS DIFERENÇAS -->
+      <div class="card">
+        <h3>📊 Resumo das Diferenças</h3>
+        <ul>
+          <li>🔴 <strong>Faltante:</strong> Falta no físico, sobra no papel. <em>(O sistema diz que tem, mas o motorista não achou no caminhão.)</em></li>
+          <li>🟡 <strong>Voando:</strong> Sobra no físico, falta no papel. <em>(O motorista achou no caminhão, mas o sistema diz que não deveria estar lá.)</em></li>
+          <li>⚫ <strong>Perdido:</strong> Não tem no físico, não tem no papel e ninguém sabe onde está. <em>(Sumiu de verdade, virou prejuízo.)</em></li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="pac-lor" class="tab-content hidden">
+      <div class="card">
+        <h3>📋 LOR - Lost On Route</h3>
+        <p><strong>Definição:</strong> Pacotes perdidos em rota. O transportador só identificava quando o desconto já aparecia na pré-fatura, sem tempo para investigar.</p>
+        <p><strong>Objetivo:</strong> Dar visibilidade preventiva e automatizada para gestão de pacotes pendentes em rota.</p>
+        <p><strong>Como evitar LOR:</strong></p>
+        <ul>
+          <li>✅ Acompanhar o carregamento e desconteinerizar pacotes que não serão carregados.</li>
+          <li>✅ Em caso de insucesso, retornar o pedido ao SVC no mesmo dia e certificar-se do registro (bipado) pelo time de devolução.</li>
+          <li>✅ Se houver palavra-chave e o buyer não souber, não entregar o pacote. Retornar ao SVC.</li>
+        </ul>
+        <p><strong>Impacto:</strong> Desconto na fatura para pedidos com status "extravio em rota" sem tratativa, além de possíveis bloqueios para carregamento.</p>
+        <p><strong>Evidências aceitas:</strong></p>
+        <ul>
+          <li>✅ Print do histórico de inventário com status final: "Para despachar", "Para solução de problemas | Faltante"</li>
+          <li>✅ Pacote com status "Entregue" (se baixa correta)</li>
+          <li>✅ Pacote sinistrado com status "Na estação | Aguardando boletim de ocorrência"</li>
+          <li>✅ Pacote com status "Para devolver" e derivados</li>
+        </ul>
+        <p><strong>Evidências recusadas:</strong></p>
+        <ul>
+          <li>❌ Tratativas por WhatsApp ou e-mail</li>
+          <li>❌ Foto do pacote em qualquer local</li>
+          <li>❌ Mensagens com o buyer</li>
+          <li>❌ Romaneios manuais</li>
+          <li>❌ Print sem status final do pacote</li>
+          <li>❌ Status "Para devolução | Avariado em rota"</li>
+          <li>❌ Histórico de etiquetagem</li>
+        </ul>
+        <p><strong>Contestação:</strong> Usar o AppSheet de Inventory Controls, preencher motivo, evidências em imagem e observação. Analisar prioridade: alta (48h), média (24h), baixa (dentro do prazo).</p>
+        <p><strong>Links:</strong></p>
+        <p>🔹 Shield: <a href="https://shield.adminml.com/requests/create?c=2426" target="_blank">Solicitar acesso</a></p>
+        <p>🔹 AppSheet: <a href="https://www.appsheet.com/start/a20d6df6-53dd-4e30-98d0-777b1fa4bd6a" target="_blank">Acesso às bandejas</a></p>
+      </div>
+    </div>
+
+    <div id="pac-tutorial" class="tab-content hidden">
+      <div class="card">
+        <h3>🛠️ Tutorial Bandeja e Risco MELI</h3>
+        <p><strong>Pacote Perdido - LOR e Mercado Livre</strong> (reunião quarta-feira)</p>
+        <ol>
+          <li>Baixar planilha da bandeja <strong>LOR</strong></li>
+          <li>Abrir <strong>Risco MELI</strong> → IMPORT LOR → apaga tudo menos a primeira fileira</li>
+          <li>Abrir AppSheet (arquivo baixado da bandeja) → copia tudo <em>menos a primeira fileira</em> (para baixo e lado) e cola no <strong>RISCO MELI</strong></li>
+          <li>No <strong>Risco MELI</strong>, ir na coluna <strong>L</strong> → clicar nos três tracinhos (filtrar) → limpa tudo → escreve <strong>BRN</strong> e seleciona tudo que aparecer</li>
+          <li>Ir na fileira <strong>C</strong> → copia a fileira (Ctrl + Shift + ↓) e cola na coluna <strong>L</strong> → vai no filtro novamente e seleciona tudo OK</li>
+          <li>Site: <strong>Mercado Livre - Logistic</strong> → aba <strong>MOTORISTA</strong> → baixa o arquivo</li>
+          <li>Planilha <strong>RISCO MELI</strong> → ir na aba ao lado <strong>Mot Logistics</strong> → ir na última linha (Ctrl + ↓) e adicionar +1000</li>
+          <li>Abrir arquivo baixado <strong>Report Rive</strong> (do Mercado Livre) → copia TUDO <em>menos a primeira fileira</em> (Ctrl + Shift + ↓ + →)</li>
+          <li><strong>RISCO MELI</strong> → Mot Logistics → dar um <strong>Ctrl + ↑</strong> → cola abaixo na página branca (os adicionados 1000)</li>
+          <li>Após atualizar as duas planilhas, a aba <strong>DASH</strong> estará atualizada</li>
+          <li>Tirar print visível (zoom 50) → cortar certo → enviar no grupo <strong>PACOTE PERDIDOS</strong> no WhatsApp marcando todos</li>
+        </ol>
+        <p class="tip">⚠️ <strong>Importante:</strong> Sempre atualizar as duas planilhas antes de tirar o print!</p>
+      </div>
+    </div>
+
+    <div id="pac-tratativa" class="tab-content hidden">
+      <div class="card">
+        <h3>📩 NOVA TRATATIVA</h3>
+        <p>Envios Diaríos: Os focais receberão 2 e-mails por
+dia (às 9h e às 16h) com a lista
+atualizada dos IDs em risco de
+perda.</p>
+        <p>Detalhamento Completo: Shipment ID, produto, facility, motivo
+do insucesso e dias em aberto —
+tudo em um só e-mail.</p>
+        <p>Objetivo Operacional: Tratar proativamente cada ID junto
+às equipes responsáveis, evitando
+que os pacotes se tornem LOST.</p>
+        <p>A ação esperada é o tratamento operacional direto pelos focais junto às equipes:</p>
+        <ul>
+          <li>Driver</li>
+          <li>SVC</li>
+          <li>Dispatcher</li>
+          <li>Supervisão</li>
+        </ul>
+        <div class="obs">
+          <strong>OBS:</strong> Caso sejam casos de baixas indevidas, trata via ticketeira com o time de SRM.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEÇÃO PROFARMA -->
+  <div id="profarma" class="section hidden">
+    <div class="section-header">
+      <h2>📊 PROFARMA</h2>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('prof-tutorial', this)">TUTORIAL</button>
+    </div>
+    <div id="prof-tutorial" class="tab-content active">
+      <div class="card profarma-card">
+        <div class="manual-toolbar" data-editor="profarma">
+          <strong>Editor manual do tutorial</strong>
+          <button type="button" class="editor-btn" data-edit-profarma>Editar</button>
+          <button type="button" class="editor-btn" data-add-profarma-title>+ Adicionar título</button>
+          <button type="button" class="editor-btn" data-format-profarma="bold"><b>Negrito</b></button>
+          <label class="color-control">Cor do texto <input type="color" data-color-profarma value="#111827"></label>
+          <button type="button" class="editor-btn primary" data-save-profarma>Salvar</button>
+          <span class="save-state" data-profarma-state></span>
+        </div>
+        <div id="profarma-manual-content" class="manual-editable-content">
+        <h3>🛠️ Tutorial Profarma - Comprovei</h3>
+        <ol>
+          <li>Acessar o site: <strong>COMPROVEI</strong></li>
+          <li>Ir em <strong>Gerencial > Exportações</strong></li>
+          <li><strong>Página 1</strong> - Selecione a exportação: <strong>Itinerários (Envio por email)</strong> → abaixa a primeira página</li>
+          <li><strong>Página 3</strong> - Filtrar: puxa o primeiro dia do mês até o dia atual</li>
+        </ol>
+        <p class="warning">⚠️ NÃO PREENCHER NADA referente a: NÚMERO DO DOCUMENTO, espaço em branco abaixo, STATUS DA ROTA.</p>
+        <p><strong>Status itinerário:</strong> CRIADO - PARCEIRO SPOT</p>
+        <p class="warning">❌ NÃO PREENCHER - STATUS*</p>
+        <p>Adicionar email corporativo</p>
+        <hr>
+        <p><strong>GMAIL:</strong> Abrir o email da Comprovei → vai abrir uma planilha</p>
+        <p><strong>Na planilha:</strong></p>
+        <ol>
+          <li>Selecione toda a coluna (parte de baixo) → muda o nome para <strong>"1"</strong></li>
+          <li>Seleciona a coluna A → <strong>Dados > Texto para colunas</strong></li>
+          <li><strong>DELIMITADO</strong> → <strong>TABULAÇÃO E VÍRGULA</strong> (desmarcar a opção de descondirar) → <strong>GERAL</strong> → Concluir</li>
+          <li><strong>Salvar como</strong> → Procurar → Google Drive → Meu Drive → Pasta da Profarma → Ano Atual → Indicadores → Base Comprovei → Substituir a pasta do mês</li>
+        </ol>
+        <p class="warning">⚠️ ATENÇÃO: Mudar o tipo de arquivo para "PASTA DE TRABALHO DO EXCEL". Fechar o arquivo PDF antes de abrir o BI e apagar o arquivo CSV gerado anteriormente.</p>
+        <hr>
+        <p><strong>Abrir o BI NOVO</strong> (Meu Drive > Profarma > Ano Atual > Indicadores > BI Novo)</p>
+        <p>Atualizar. Se der erro:</p>
+        <ol>
+          <li><strong>Transformar dados:</strong> Configuração da fonte de dados (tanto pasta quanto folha) → alterar fonte</li>
+          <li><strong>Símbolo de pasta:</strong> Se não aparecer alterando fonte, fazer o seguinte:</li>
+        </ol>
+        <p>Abrir explorador de arquivos → Drive → Meu Drive → Profarma → Ano Atual → Indicadores → Base Comprovei → visualizando a folha do mês atual → na parte de cima onde mostra os arquivos clicados → clicar em algum vão com botão direito → <strong>Copiar endereço como texto</strong></p>
+        <p>Voltar no Power BI → na aba pastinha → <strong>Alterar fonte</strong> → apagar toda escrita do caminho da pasta e colar o que foi copiado anteriormente → OK</p>
+        <ol start="3">
+          <li><strong>Símbolo folha:</strong> Google Drive → Meu Drive → Profarma → Ano Atual → Indicadores → Base Comprovei → clicar no <strong>MÊS ATUAL</strong> (arquivo anterior que fez no Comprovei)</li>
+        </ol>
+        <p>Se aparecer um aviso acima → apertar <strong>APLICAR</strong></p>
+        <p><strong>Por fim:</strong> ATUALIZAR</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEÇÃO SINISTRO -->
+  <div id="sinistro" class="section hidden">
+    <div class="section-header">
+      <h2>🚨 SINISTRO</h2>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('sin-irisys', this)">IRISYS</button>
+      <button class="tab-btn" onclick="showTab('sin-serra', this)">SERRA</button>
+      <button class="tab-btn" onclick="showTab('sin-mensagens', this)">MENSAGENS</button>
+    </div>
+
+    <div id="sin-irisys" class="tab-content active">
+      <div class="card">
+        <h3>🖥️ IRISYS Sistema</h3>
+        <p><strong>Caminho:</strong> Contato > Gestão de Sinistro > Novo > Anexar documentos</p>
+        <p><strong>Controle:</strong> Gerencia Sinistro → Novo</p>
+        <p><strong>Dados do motorista:</strong></p>
+        <ul>
+          <li>Matrícula: <strong>ID do motorista</strong></li>
+          <li>Marcar se possui ajudante: <strong>Sim ou Não</strong></li>
+        </ul>
+        <p><strong>Dados do sinistro:</strong> Preencher com info mandada no WhatsApp</p>
+        <ul>
+          <li>Cliente transportadora: <strong>MERCADO LIVRE</strong></li>
+          <li>Quantidade de pacotes que possui e quantidade que foi sinistrado (roubado)</li>
+          <li>Quantidade de pacotes recuperados e entregues</li>
+          <li>Fase do transporte: <strong>LAST MILE</strong></li>
+        </ul>
+        <p class="tip">💡 <strong>Observação:</strong> Os dois últimos da segunda aba não precisa preencher.</p>
+        <p><strong>Resultado do sinistro:</strong></p>
+        <ul>
+          <li>Natureza do sinistro: <strong>Furto ou Roubo</strong></li>
+          <li>Descontar do motorista: <em>Depende</em></li>
+          <li>Valor sinistrado: <em>Info no WhatsApp</em></li>
+          <li>Se tiver valor recuperado também anexar</li>
+        </ul>
+        <p><strong>BOLETIM DE OCORRÊNCIA:</strong></p>
+        <ul>
+          <li>Dados BO Principal: com a numeração do B.O (parte de cima lateral, logo ao topo)</li>
+          <li>Pacote: <strong>ID das Notas Fiscais</strong></li>
+        </ul>
+        <hr>
+        <p><strong>📎 ANEXOS (anexar um de cada):</strong></p>
+        <ul class="checklist">
+          <li>BO principal</li>
+          <li>CNH do sinistrado</li>
+          <li>CRLV do veículo sinistrado</li>
+          <li>Liberação cadastro - GR (2x se tiver GR da placa)</li>
+          <li>DANFE - Nota fiscal</li>
+          <li>Declaração do motorista - Carta de punho</li>
+          <li>Comprovante de vínculo do motorista - Contrato</li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="sin-serra" class="tab-content hidden">
+      <div class="card">
+        <h3>🏔️ SERRA</h3>
+        <p><strong>Shipments:</strong> IDs da nota fiscal (não é obrigatório, mas é bom colocar)</p>
+        <p><strong>Causa do sinistro:</strong> Roubo ou furto</p>
+        <p><strong>Mercadoria:</strong> Quantidade de mercadoria roubada (ex: 11 pacotes)</p>
+        <p><strong>Tipo de Operação:</strong> LM - LOGISTICS</p>
+        <p><strong>Avarias na Mercadoria:</strong> Sempre <strong>Roubo</strong></p>
+        <p><strong>Valor do embarque x Estimativa do prejuízo =</strong> Valor perdido no sinistro</p>
+        <p><strong>Nr Nota Fiscal/Invoice:</strong> Quantidade de NF (ex: 11 notas fiscais, condizente com o que tem no Gmail)</p>
+        <hr>
+        <p><strong>Dados do embarque:</strong> (Estimativa da hora que ele começou a entregar)</p>
+        <ul>
+          <li>Estado: ex (BA - cidade também Bahia)</li>
+          <li>⚠️ <strong>NÃO preencher CEP</strong></li>
+        </ul>
+        <p><strong>Dados do destinatário:</strong></p>
+        <ul>
+          <li>Estado: Mesma coisa do de cima (se for BA → Bahia)</li>
+          <li>⚠️ <strong>NÃO preencher CEP</strong></li>
+        </ul>
+        <p><strong>Dados do sinistro:</strong></p>
+        <ul>
+          <li>Data da ocorrência x Hora</li>
+          <li>CEP - (De preferência ver o que foi enviado pro email do MercadoLivre)</li>
+          <li>Cidade que aconteceu: ex <strong>BA - Camaçari</strong></li>
+        </ul>
+        <p><strong>Dados do motorista:</strong></p>
+        <ul>
+          <li>Nome: * CPF: * CNH</li>
+        </ul>
+        <p><strong>Dados do veículo:</strong></p>
+        <ul>
+          <li>Placa/Cavalo x Modelo</li>
+        </ul>
+        <hr>
+        <p><strong>📁 ARQUIVOS PARA ANEXAR:</strong></p>
+        <ul class="checklist">
+          <li><strong>Outros documentos:</strong> Carta de punho</li>
+          <li><strong>Notas fiscais:</strong> Todas as notas fiscais já agrupadas</li>
+          <li><strong>Conhecimentos de Transportes/Espelhos:</strong> Romaneio se tiver</li>
+          <li><strong>Pesquisa e Liberação do motorista:</strong> CNH, GR do motorista, Contrato</li>
+          <li><strong>Pesquisa e Liberação do veículo:</strong> CRLV, GR da placa (se tiver). Se não tiver, colocar GR do motorista duas vezes</li>
+          <li><strong>Pesquisa e Liberação do proprietário:</strong> GR do motorista, Contrato, CNH</li>
+          <li><strong>Pesquisa e Liberação do Ajudante (se houver):</strong> RG, GR, Contrato e Carta de punho (se o valor for muito alto)</li>
+          <li><strong>Boletim de ocorrência:</strong> B.O agrupado</li>
+          <li><strong>Demonstrativo de Prejuízo:</strong> Mencionando Notas, Valores, Código do Produto e Shipments (feito na planilha)</li>
+          <li><strong>Documento do veículo:</strong> CRLV</li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="sin-mensagens" class="tab-content hidden">
+      <div class="card sinistro-messages-card">
+        <div class="manual-toolbar" data-editor="sinistro">
+          <strong>Editor manual das mensagens</strong>
+          <button type="button" class="editor-btn" data-edit-messages>Editar mensagens</button>
+          <button type="button" class="editor-btn" data-add-message-title>+ Adicionar título</button>
+          <button type="button" class="editor-btn" data-format-messages="bold"><b>Negrito</b></button>
+          <label class="color-control">Cor do texto <input type="color" data-color-messages value="#111827"></label>
+          <button type="button" class="editor-btn primary" data-save-messages>Salvar</button>
+          <span class="save-state" data-messages-state></span>
+        </div>
+        <h3>📋 Mensagens Copiáveis</h3>
+        <p class="tip">💡 Clique em qualquer mensagem para copiar automaticamente!</p>
+
+        <h4>🟠 FICHA SHOPEE</h4>
+        <div class="copy-box" onclick="copyText(this)">
+          <p class="pre-line">SINISTRO
+
+🗒️ Operação:
+🗓️ Data:
+🚚 Transportadora: PARCEIRO SPOT
+🆔 ID da rota:
+📱 Rota:
+👤 Motorista:
+🆔 ID Motorista:
+🆔 CPF:
+🪪 CNH:
+☎️ TELEFONE:
+🔲 POSSUI AJUDANTE:
+👤 AJUDANTE:
+🚘 Placa:
+🚙 Veículo:
+🏷️ Adesivado:
+📍 Local (Endereço) do fato:
+📍 Local (Endereço) transbordo:
+⌚ Horário da ocorrência aproximadamente:
+
+📦📦 Quantidade total de pacotes:
+📦📬 Quantidade entregues:
+📦📬 Quantidade coletados:
+📦❌ Quantidade sinistrado:
+📦 ✅ Quantidade recuperada:
+💰 💰 Valor do sinistro:
+
+🗒️🎙️ Ocorrência do Caso: (Como foi):</p>
+        </div>
+
+        <h4>📄 Documentação Necessária (Legível)</h4>
+        <div class="copy-box" onclick="copyText(this)">
+          <p class="pre-line">DOCUMENTAÇÃO NECESSÁRIA (LEGÍVEL):
+
+1-CNH do Motorista; ❌
+2-Documento do Veículo; NA VALIDADE ❌
+3-Carta de Punho (em papel ofício, datada, assinada e sem rasuras); DRIVER NARRANDO O QUE ACONTECEU ❌
+4-B.O CONTENDO: PLACA, NFS E VALOR TOTAL DO SINISTRO; (ADITAR) ❌
+7-LIBERAÇÃO (GR) COM A VALIDADE EM DIA / CONFERIR PLACA ❌
+9-CONTRATO; ❌
+11- NOTAS FISCAIS (enviar para o email sinistro@parceirospot.com.br) ❌
+12 - ROMANEIO (TEM QUE SOLICITAR PARA O MELI NO MESMO DIA) ❌
+
+Obs. importante sobre o item 11 (Notas Fiscais): As notas fiscais devem vir cada uma com apenas o seu próprio ID de venda/pedido no nome do arquivo PDF. Devem vir renomeadas exclusivamente com o ID correspondente a cada nota enviada. Por favor, solicitem para não nomear as notas com vários IDs aglomerados.</p>
+        </div>
+
+        <h4>📝 Informações que devem conter no B.O.</h4>
+        <div class="copy-box" onclick="copyText(this)">
+          <p class="pre-line">Informações que devem conter no B.O.
+
+Quantidade de pacotes roubados.
+Valor total.
+Número das notas fiscais
+Placa do Veículo (NÃO PODE TER UMA LETRA ERRADA)
+            
+ATENÇÃO QUALQUER ERRO DEVE SER CORRIGIDO NA HORA.</p>
+        </div>
+
+        <h4>📋 FICHA MELI</h4>
+        <div class="copy-box" onclick="copyText(this)">
+          <p class="pre-line">SINISTRO
+
+🗒️ Operação:
+🗓️ Data:
+🚚 Transportadora: PARCEIRO SPOT
+🆔 ID da rota:
+📱 Rota:
+👤 Motorista:
+🆔 ID Motorista:
+🆔 CPF:
+🪪 CNH:
+☎️ TELEFONE:
+🔲 POSSUI AJUDANTE:
+👤 AJUDANTE:
+🚘 Placa:
+🚙 Veículo:
+🏷️ Adesivado:
+📍 Local (Endereço) do fato:
+📍 Local (Endereço) transbordo:
+⌚ Horário da ocorrência aproximadamente:
+📦📦 Quantidade total de pacotes:
+📦📬 Quantidade entregues:
+📦📬 Quantidade coletados:
+📦❌ Quantidade sinistrado:
+📦 ✅ Quantidade recuperada:
+💰 💰 Valor do sinistro:</p>
+        </div>
+
+        <h4>📧 Mensagem para Email</h4>
+        <div class="copy-box" onclick="copyText(this)">
+          <p class="pre-line">AVISO DE SINISTRO
+
+Segue abaixo dados do sinistro:
+
+ROUBO DE CARGA | NOME DO DRIVE | PLACA | DATA
+
+Data e hora do sinistro:
+Nome do Embarcador: MERCADO ENVIOS
+Nome do Transportador: PARCEIRO SPOT SOLUÇÕES
+Motorista: NOME DO DRIVE
+CPF:
+Veículo: MARCA
+Remetente: MERCADO ENVIOS
+Cidade UF/Remetente: ex: Camaçari - BA
+Destinatário: Não Declarado.
+Quantidade sinistrada:
+Causa: SELECIONAR ENTRE Furto ou Roubo
+Local do Sinistro: (pesquisar cep)
+Estimativa do Prejuízo: VALOR DO SINISTRO.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SEÇÃO PNR MANUAL -->
+  <div id="pnr" class="section hidden">
+    <div class="section-header"><h2>📝 PNR — BLOCO DE NOTAS</h2></div>
+    <div class="card pnr-card">
+      <div class="manual-toolbar"><strong>Notas PNR</strong><button type="button" class="editor-btn primary" data-add-pnr>+ Adicionar bloco</button><span class="save-state" data-pnr-state></span></div>
+      <p class="manual-help">Adicione título e descrição. Escolha as cores e minimize a descrição quando quiser mostrar apenas o título.</p>
+      <div id="pnr-notes-list"></div>
+    </div>
+  </div>
+
+  <!-- SEÇÃO INFORMAÇÕES ADICIONAIS -->
+  <div id="info" class="section hidden">
+    <div class="section-header">
+      <h2>📋 INFOS ADICIONAIS</h2>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('info-pnr', this)">PNR</button>
+      <button class="tab-btn" onclick="showTab('info-avaria', this)">AVARIA</button>
+      <button class="tab-btn" onclick="showTab('info-xpt', this)">XPT</button>
+      <button class="tab-btn" onclick="showTab('info-svc', this)">SVC</button>
+    </div>
+
+    <div id="info-pnr" class="tab-content active">
+      <div class="card">
+        <h3>📦 PNR - Pacote Não Recebido</h3>
+        <p><strong>O que é:</strong> Status indicando que o pacote não foi recebido pelo cliente (buyer).</p>
+        <p><strong>Causas comuns:</strong></p>
+        <ul>
+          <li>📌 O cliente não estava no endereço no momento da entrega.</li>
+          <li>📌 Endereço incorreto ou incompleto cadastrado.</li>
+          <li>📌 O pacote foi entregue em local errado (porteiro, vizinho) sem autorização.</li>
+          <li>📌 O cliente recusou a entrega por algum motivo.</li>
+          <li>📌 O motorista não conseguiu localizar o endereço.</li>
+        </ul>
+        <p><strong>Exemplo:</strong> O motorista chegou no endereço, tocou a campainha, ninguém atendeu. Deixou o pacote com o porteiro, mas o cliente não autorizou e abriu reclamação de PNR.</p>
+        <p><strong>Como tratar:</strong> Verificar se houve tentativa de entrega, se há foto de comprovação, se o endereço está correto. Se necessário, reentregar ou devolver ao SVC.</p>
+        <p class="tip">💡 <strong>Relação com XPT:</strong> Muitos PNRs acabam indo para o XPT (Cross Point) quando o cliente não recebe e o pacote retorna.</p>
+      </div>
+    </div>
+
+    <div id="info-avaria" class="tab-content hidden">
+      <div class="card">
+        <h3>📦 AVARIA</h3>
+        <p><strong>O que é:</strong> Quando o pacote chega ao cliente com a embalagem ou produto danificado.</p>
+        <p><strong>Causas comuns:</strong></p>
+        <ul>
+          <li>📌 Mau manuseio durante o transporte (pacote jogado, amassado).</li>
+          <li>📌 Empilhamento incorreto no veículo.</li>
+          <li>📌 Embalagem frágil sem proteção adequada.</li>
+          <li>📌 Exposição à chuva ou umidade.</li>
+          <li>📌 Queda do pacote durante a entrega.</li>
+        </ul>
+        <p><strong>Exemplo:</strong> O motorista colocou uma caixa de vidro embaixo de uma caixa pesada de ferro. Durante o trajeto, a caixa de ferro amassou a caixa de vidro. O cliente recebeu o produto quebrado e abriu reclamação de avaria.</p>
+        <p><strong>Como tratar:</strong> Sempre separar produtos frágeis, usar proteção adequada, tirar fotos se o pacote já chegou avariado ao SVC. Se avaria acontecer em rota, o motorista pode ser responsabilizado.</p>
+        <p class="tip">⚠️ <strong>Status "Para devolução | Avariado em rota" NÃO é aceito como evidência válida!</strong> Esse status indica que o pacote foi danificado enquanto estava em posse do driver.</p>
+      </div>
+    </div>
+
+    <div id="info-xpt" class="tab-content hidden">
+      <div class="card">
+        <h3>📦 XPT - Cross Point</h3>
+        <p><strong>O que é:</strong> Local onde os pacotes são centralizados para redirecionamento. É um ponto de transferência entre diferentes etapas do transporte.</p>
+        <p><strong>Causas comuns de pacote ficar no XPT:</strong></p>
+        <ul>
+          <li>📌 Cliente não estava para receber (PNR que retornou).</li>
+          <li>📌 Endereço incorreto, pacote precisa ser reencaminhado.</li>
+          <li>📌 Pacote foi devolvido pelo cliente.</li>
+          <li>📌 Pacote ficou no SVC e não foi embarcado na rota.</li>
+        </ul>
+        <p><strong>Exemplo:</strong> O motorista tentou entregar 3 vezes, o cliente não estava. O pacote foi direcionado para o XPT para que outra transportadora tentasse a entrega ou fosse devolvido ao remetente.</p>
+        <p><strong>Como tratar:</strong> Acompanhar o status no sistema. Se o pacote ficar muito tempo no XPT, pode gerar LOR. Sempre registrar a devolução corretamente.</p>
+        <p class="tip">💡 <strong>Relação com LOR:</strong> Pacotes que ficam no XPT sem registro de bipagem podem virar LOR se o status não for atualizado.</p>
+      </div>
+    </div>
+
+    <div id="info-svc" class="tab-content hidden">
+      <div class="card">
+        <h3>📦 SVC - Service Center</h3>
+        <p><strong>O que é:</strong> Centro de serviço onde os pacotes são recebidos, armazenados e distribuídos para as rotas de entrega.</p>
+        <p><strong>Causas comuns de pacote ficar no SVC:</strong></p>
+        <ul>
+          <li>📌 Falha no carregamento (motorista não viu o pacote na lista).</li>
+          <li>📌 Devolução da rota (insucesso de entrega).</li>
+          <li>📌 Pacote com endereço errado aguardando correção.</li>
+          <li>📌 Pacote retido por alguma pendência (documentação, avaria).</li>
+        </ul>
+        <p><strong>Exemplo:</strong> O motorista chegou no SVC para carregar, o pacote estava na lista mas não foi colocado na van. O dispatcher não desconteinerizou. O pacote ficou no SVC e depois apareceu como LOR porque não teve baixa.</p>
+        <p><strong>Como tratar:</strong> O dispatcher deve acompanhar o carregamento, garantir que pacotes não carregados sejam desconteinerizados. Em caso de devolução, o motorista deve acompanhar a bipagem e tirar print da tela de devolução.</p>
+        <p class="tip">💡 <strong>Relação com LOR:</strong> Se o pacote ficou no SVC mas não foi registrado, pode aparecer como "perdido em rota". A evidência válida é o print da tela de bipagem com status final do pacote.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEÇÃO REUNIÕES -->
+  <div id="reunioes" class="section hidden">
+    <div class="section-header">
+      <h2>📅 REUNIÕES</h2>
+    </div>
+    <div class="card">
+      <div class="meeting-item">
+        <div class="meeting-day">SEGUNDA-FEIRA</div>
+        <div class="meeting-info">
+          <p><strong>🕚 11:00</strong> - Profarma</p>
+        </div>
+      </div>
+      <div class="meeting-item">
+        <div class="meeting-day">QUARTA-FEIRA</div>
+        <div class="meeting-info">
+          <p><strong>🕒 15:00</strong> - Shopee</p>
+          <p><strong>🕔 17:00</strong> - Mercado Livre</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST DE CÓPIA -->
+  <div id="toast" class="hidden">📋 Texto copiado!</div>
+
+  <script src="script.js"></script>
+</body>
+</html>
