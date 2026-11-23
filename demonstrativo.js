@@ -282,7 +282,8 @@
 
     ws.eachRow(function (row, n) {
       row.eachCell({ includeEmpty: true }, function (cell, c) {
-        cell.font = font; cell.alignment = align; cell.border = border;
+        cell.font = (n === 1 && (c === 1 || c === 5)) ? { name: 'Arial', size: 10, color: { argb: 'FF000000' } } : font;
+        cell.alignment = align; cell.border = border;
         if (n > 1) {
           if (c === 3) cell.numFmt = FMT_NF;
           if (c === 6) cell.numFmt = FMT_BRL;
@@ -296,24 +297,23 @@
   /*  Exportação PDF                                                     */
   /* ------------------------------------------------------------------ */
   function buildPdf(jsPDF, autoTable, rows) {
-    var doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    // Igual ao PDF modelo: A4 paisagem, Arial (helvetica) 5,6pt em TODAS as linhas
+    // (cabeçalho SHP_SHIPMENT_ID e QUANTIDADE ITEM em 5,1pt). A fonte nunca diminui:
+    // descrição grande quebra em 2 linhas, mantendo o mesmo tamanho.
+    var doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
     var body = rows.map(function (r) {
       return [r.id, r.chave, formatNF(r.nf), r.item, Number(r.qtd).toLocaleString('pt-BR'), formatBRL(r.valor), r.status];
     });
     autoTable(doc, {
       head: [HEADERS], body: body, theme: 'grid',
-      margin: { top: 8, right: 8, bottom: 8, left: 8 },
-      styles: { font: 'helvetica', fontSize: 6.5, cellPadding: 1.2, halign: 'center', valign: 'middle', textColor: 0, lineColor: 0, lineWidth: 0.1, overflow: 'linebreak' },
-      headStyles: { fillColor: [255, 255, 255], textColor: 0, fontStyle: 'normal', lineColor: 0, lineWidth: 0.1 },
-      columnStyles: { 0: { cellWidth: 28 }, 1: { cellWidth: 73, overflow: 'visible' }, 2: { cellWidth: 19 }, 3: { cellWidth: 100, overflow: 'ellipsize' }, 4: { cellWidth: 18 }, 5: { cellWidth: 21 }, 6: { cellWidth: 22 } },
+      margin: { top: 54, right: 50.4, bottom: 54, left: 50.4 },
+      tableWidth: 741.6,
+      styles: { font: 'helvetica', fontStyle: 'normal', fontSize: 5.6, cellPadding: 0.8, halign: 'center', valign: 'middle', textColor: 0, lineColor: 0, lineWidth: 0.25, overflow: 'linebreak' },
+      headStyles: { fillColor: [255, 255, 255], textColor: 0, fontStyle: 'normal', fontSize: 5.6, lineColor: 0, lineWidth: 0.25 },
+      columnStyles: { 0: { cellWidth: 59.6 }, 1: { cellWidth: 172.1, overflow: 'visible' }, 2: { cellWidth: 40.4 }, 3: { cellWidth: 310.1 }, 4: { cellWidth: 59.6 }, 5: { cellWidth: 46.3 }, 6: { cellWidth: 53.5 } },
       showHead: 'everyPage',
       didParseCell: function (h) {
-        if (h.section !== 'body' || h.column.index !== 3) return;
-        var txt = h.cell.text.join(' '), size = 6.5, avail = 100 - 5;
-        doc.setFontSize(size);
-        var w = doc.getTextWidth(txt);
-        if (w > avail) size = Math.max(4.2, size * avail / w);
-        h.cell.text = [txt]; h.cell.styles.fontSize = size;
+        if (h.section === 'head' && (h.column.index === 0 || h.column.index === 4)) h.cell.styles.fontSize = 5.1;
       }
     });
     return doc;
@@ -382,7 +382,7 @@
       if (seen[sig]) { already++; return false; }
       seen[sig] = true; f.__sig = sig; return true;
     });
-    pdfs.sort(function (a, b) { return a.name.localeCompare(b.name, 'pt-BR', { numeric: true }); });
+    // Mantém a MESMA ordem em que os arquivos foram enviados (a ordem da pasta do PC). Não reordena por nome.
     if (!pdfs.length && !skipped && !already) return;
 
     try { await ensurePdfJs(); } catch (e) { setProgress('⚠️ ' + e.message); return; }
@@ -495,15 +495,59 @@
     $('demo-btn-xlsx').addEventListener('click', exportXlsx);
     $('demo-btn-pdf').addEventListener('click', exportPdf);
     $('demo-btn-notas').addEventListener('click', exportNotas);
+    // ---- Desfazer (Ctrl+Z) para remoção de nota (✕) e "Limpar tudo" ----
+    var undoStack = [], toastTimer = null;
+    var toast = document.createElement('div');
+    toast.className = 'demo-toast hidden';
+    toast.innerHTML = '<span id="demo-toast-msg"></span><button type="button" id="demo-toast-undo">↩ Desfazer (Ctrl+Z)</button>';
+    document.body.appendChild(toast);
+    function showToast(msg) {
+      document.getElementById('demo-toast-msg').textContent = msg;
+      toast.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { toast.classList.add('hidden'); }, 8000);
+    }
+    function pushUndo(removed, msg) {
+      if (!removed.length) return;
+      undoStack.push(removed);
+      showToast(msg);
+    }
+    function undo() {
+      var removed = undoStack.pop();
+      if (!removed) return false;
+      var back = 0;
+      removed.forEach(function (e) {
+        if (e.sig && seen[e.sig]) return;            // o mesmo arquivo já foi adicionado de novo
+        if (e.sig) seen[e.sig] = true;
+        entries.push(e); back++;
+      });
+      entries.sort(function (a, b) { return a.seq - b.seq; });   // volta para a mesma posição de antes
+      extraNotes = []; render();
+      if (undoStack.length) showToast('Restaurado. Ainda dá para desfazer mais ' + undoStack.length + ' ação(ões).');
+      else toast.classList.add('hidden');
+      return true;
+    }
+    document.getElementById('demo-toast-undo').addEventListener('click', undo);
+    document.addEventListener('keydown', function (ev) {
+      if (!(ev.ctrlKey || ev.metaKey) || ev.shiftKey || ev.altKey || String(ev.key).toLowerCase() !== 'z') return;
+      var t = ev.target, tag = t && t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;   // não atrapalha o Ctrl+Z de digitação
+      if (!drop.offsetParent) return;                 // só quando a aba Demonstrativo está aberta
+      if (undo()) ev.preventDefault();
+    });
+
     $('demo-btn-clear').addEventListener('click', function () {
       if (entries.length && !confirm('Limpar todas as notas carregadas?')) return;
+      var all = entries.slice();
       entries = []; seen = {}; extraNotes = []; render();
+      pushUndo(all, 'Todas as notas foram removidas.');
     });
     $('demo-tbody').addEventListener('click', function (e) {
       var b = e.target.closest('[data-demo-remove]'); if (!b) return;
-      var k = b.getAttribute('data-demo-remove');
-      entries = entries.filter(function (x) { if (x.key === k) { delete seen[x.sig]; return false; } return true; });
+      var k = b.getAttribute('data-demo-remove'), removed = [];
+      entries = entries.filter(function (x) { if (x.key === k) { delete seen[x.sig]; removed.push(x); return false; } return true; });
       extraNotes = []; render();
+      pushUndo(removed, 'Nota removida.');
     });
     render();
   }
