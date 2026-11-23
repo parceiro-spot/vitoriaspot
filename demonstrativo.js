@@ -5,6 +5,7 @@
    - Pega: chave de acesso, número da NF, item (descrição), quantidade e
      VALOR TOTAL DA NOTA
    - ID repetido  -> 48054508351_17, 48054508351_17-1, 48054508351_17-2 ...
+   - Nome com (PARTE 2) é mantido: '48569637323 (PARTE 2)'; se repetir -> '48569637323 (PARTE 2)-1'
    - Nota fora do padrão / ilegível -> avisa o ID no painel de observações
    - Exporta no mesmo formato da planilha modelo (XLSX) e em PDF
    ========================================================================== */
@@ -145,13 +146,12 @@
     });
     for (var r = 0; r < rows.length; r++) {
       if (!rows[r].desc) { out.errors.push('descrição do item ' + (r + 1) + ' não encontrada'); return out; }
-      if (!(rows[r].qtd > 0)) { out.errors.push('quantidade do item ' + (r + 1) + ' não encontrada'); return out; }
     }
 
     out.itens = rows.map(function (x) { return { desc: x.desc, qtd: x.qtd }; });
     out.item = out.itens.map(function (x) { return x.desc; }).join(' + ');
-    out.qtd = out.itens.reduce(function (n, x) { return n + x.qtd; }, 0);
-    if (out.itens.length > 1) out.warnings.push('nota com ' + out.itens.length + ' itens — itens unidos com "+" e quantidades somadas; confira');
+    out.qtd = 1; // quantidade padrão do demonstrativo
+    if (out.itens.length > 1) out.warnings.push('nota com ' + out.itens.length + ' itens — descrições unidas com "+" em uma linha só (quantidade 1); confira');
     if (pages.length > 1) out.warnings.push('nota com ' + pages.length + ' páginas — só a 1ª página foi lida para os itens; confira');
     out.ok = true;
     return out;
@@ -161,10 +161,10 @@
   /*  Nome do arquivo -> ID                                              */
   /* ------------------------------------------------------------------ */
   function splitFileName(fileName) {
-    var name = String(fileName).replace(/\.pdf$/i, '').trim();
-    var copy = 0, m = /\s*\((\d+)\)\s*$/.exec(name);
-    if (m) { copy = Number(m[1]); name = name.slice(0, m.index).trim(); }
-    return { baseId: name, copyIndex: copy };
+    // O nome do arquivo é respeitado exatamente como está (inclusive "(PARTE 2)").
+    // Só muda depois, no assemble(), se houver outro arquivo com o mesmo nome (-1, -2...).
+    var name = String(fileName).replace(/\.pdf$/i, '').replace(/\s+/g, ' ').trim();
+    return { baseId: name, copyIndex: 0, part: 0 };
   }
 
   /* ------------------------------------------------------------------ */
@@ -188,10 +188,11 @@
       if (seenChave[k]) {
         alerts.push({
           type: 'repetida', id: e.baseId, file: e.fileName,
-          text: 'A NF ' + e.res.nf + ' já foi adicionada com o ID ' + seenChave[k].baseId +
-            ' (mesma chave de acesso). Esta repetição foi ignorada para não duplicar o valor.'
+          text: (seenChave[k].baseId === e.baseId
+            ? 'Mesmo ID e mesmas informações de nota (NF ' + e.res.nf + ', mesma chave de acesso) nos arquivos "' + seenChave[k].fileName + '" e "' + e.fileName + '". Foi mantida só uma no demonstrativo (não renomeei para -1/-2 porque é a mesma nota). Confira se não era para ser outra nota.'
+            : 'A NF ' + e.res.nf + ' já foi adicionada com o ID ' + seenChave[k].baseId + ' (mesma chave de acesso). Esta repetição foi ignorada para não duplicar o valor.')
         });
-      } else { seenChave[k] = e; unique.push(e); }
+      } else { seenChave[k] = e; e.part = e.part || 0; unique.push(e); }
     });
 
     // agrupa por ID (mantém a ordem de chegada do 1º de cada ID)
@@ -201,35 +202,35 @@
       groups[e.baseId].push(e);
     });
     var used = {};
-    order.forEach(function (b) { used[b] = true; });
+    order.forEach(function (b) { used[b.toUpperCase()] = true; });
 
     var rows = [], renamed = 0;
     order.forEach(function (base) {
-      var g = groups[base].slice().sort(function (a, b) { return a.copyIndex - b.copyIndex || a.seq - b.seq; });
+      var g = groups[base].slice().sort(function (a, b) { return a.seq - b.seq; });
       var n = 0, changes = [];
       g.forEach(function (e, idx) {
-        var id = base;
+        var id = base, isRen = idx > 0;
         if (idx > 0) {
-          do { n++; id = base + '-' + n; } while (used[id]);
-          used[id] = true; renamed++;
+          do { n++; id = base + '-' + n; } while (used[id.toUpperCase()]);
+          used[id.toUpperCase()] = true; renamed++;
           changes.push(id + ' (NF ' + String(e.res.nf) + ')');
         }
         rows.push({
-          key: e.key, id: id, baseId: base, renamed: idx > 0,
+          key: e.key, id: id, baseId: base, renamed: isRen,
           chave: formatChave(e.res.chave), nf: e.res.nf, item: e.res.item,
           qtd: e.res.qtd, valor: e.res.valor, status: 'SINISTRADA', warnings: e.res.warnings.slice()
         });
         e.res.warnings.forEach(function (w) { alerts.push({ type: 'atencao', id: id, file: e.fileName, text: w.charAt(0).toUpperCase() + w.slice(1) + '.' }); });
-        if (!/^\d+_\d+$/.test(base) && idx === 0) {
-          alerts.push({ type: 'atencao', id: base, file: e.fileName, text: 'Nome do arquivo fora do padrão de ID (ex.: 48054508351_17). Confira se este é mesmo o ID correto.' });
+        if (!/^\d+(?:_\d+)?(?: \(PARTE \d+\))?$/i.test(base) && idx === 0) {
+          alerts.push({ type: 'atencao', id: base, file: e.fileName, text: 'Nome do arquivo fora do padrão de ID (ex.: 48054508351_17, 48569637323 ou 48569637323 (PARTE 2)). O nome foi mantido como está; confira se é mesmo o ID correto.' });
           rows[rows.length - 1].warnings.push('nome fora do padrão');
         }
       });
       if (g.length > 1) {
         alerts.push({
           type: 'duplicado', id: base,
-          text: 'O ID ' + base + ' apareceu em ' + g.length + ' notas (NF ' + g.map(function (e) { return e.res.nf; }).join(', ') +
-            '). No demonstrativo a 1ª ficou como ' + base + ' e as demais foram renomeadas para: ' + changes.join(', ') + '.'
+          text: 'O nome ' + base + ' apareceu em ' + g.length + ' notas (NF ' + g.map(function (e) { return e.res.nf; }).join(', ') +
+            '). A 1ª manteve o nome ' + base + ' e as demais ficaram como: ' + changes.join(', ') + '.'
         });
       }
     });
@@ -288,8 +289,16 @@
       margin: { top: 8, right: 8, bottom: 8, left: 8 },
       styles: { font: 'helvetica', fontSize: 6.5, cellPadding: 1.2, halign: 'center', valign: 'middle', textColor: 0, lineColor: 0, lineWidth: 0.1, overflow: 'linebreak' },
       headStyles: { fillColor: [255, 255, 255], textColor: 0, fontStyle: 'normal', lineColor: 0, lineWidth: 0.1 },
-      columnStyles: { 0: { cellWidth: 28 }, 1: { cellWidth: 73, overflow: 'visible' }, 2: { cellWidth: 19 }, 4: { cellWidth: 18 }, 5: { cellWidth: 21 }, 6: { cellWidth: 22 } },
-      showHead: 'everyPage'
+      columnStyles: { 0: { cellWidth: 28 }, 1: { cellWidth: 73, overflow: 'visible' }, 2: { cellWidth: 19 }, 3: { cellWidth: 100, overflow: 'ellipsize' }, 4: { cellWidth: 18 }, 5: { cellWidth: 21 }, 6: { cellWidth: 22 } },
+      showHead: 'everyPage',
+      didParseCell: function (h) {
+        if (h.section !== 'body' || h.column.index !== 3) return;
+        var txt = h.cell.text.join(' '), size = 6.5, avail = 100 - 5;
+        doc.setFontSize(size);
+        var w = doc.getTextWidth(txt);
+        if (w > avail) size = Math.max(4.2, size * avail / w);
+        h.cell.text = [txt]; h.cell.styles.fontSize = size;
+      }
     });
     return doc;
   }
@@ -368,7 +377,7 @@
       var parts = splitFileName(f.name), res;
       try { res = parseDanfe(await readPdf(f)); }
       catch (e) { res = { ok: false, errors: ['não foi possível abrir o PDF (arquivo corrompido ou protegido)'], warnings: [] }; }
-      entries.push({ key: 'e' + (++seq), seq: seq, fileName: f.name, sig: f.__sig, baseId: parts.baseId, copyIndex: parts.copyIndex, res: res });
+      entries.push({ key: 'e' + (++seq), seq: seq, file: f, fileName: f.name, sig: f.__sig, baseId: parts.baseId, copyIndex: parts.copyIndex, part: parts.part, res: res });
     }
     setProgress('');
     extraNotes = [];
@@ -406,13 +415,15 @@
     entries.forEach(function (e) { if (e.res && e.res.ok && e.res.warnings.length) warnKeys[e.key] = true; });
     $('demo-tbody').innerHTML = a.rows.map(function (r) {
       var flag = r.renamed ? ' demo-row-renamed' : (r.warnings.length ? ' demo-row-warn' : '');
-      return '<tr class="' + flag.trim() + '"><td>' + esc(r.id) + (r.renamed ? ' 🔁' : '') + (r.warnings.length ? ' ⚠️' : '') + '</td><td class="demo-mono">' + esc(r.chave) + '</td><td>' + esc(formatNF(r.nf)) +
-        '</td><td class="demo-left">' + esc(r.item) + '</td><td>' + esc(Number(r.qtd).toLocaleString('pt-BR')) + '</td><td>' + esc(formatBRL(r.valor)) + '</td><td>' + esc(r.status) +
+      return '<tr class="' + flag.trim() + '"><td>' + esc(r.id) + '</td><td class="demo-mono">' + esc(r.chave) + '</td><td>' + esc(formatNF(r.nf)) +
+        '</td><td class="demo-left" title="' + esc(r.item) + '">' + esc(r.item) + '</td><td>' + esc(Number(r.qtd).toLocaleString('pt-BR')) + '</td><td>' + esc(formatBRL(r.valor)) + '</td><td>' + esc(r.status) +
         '</td><td><button type="button" class="demo-x" data-demo-remove="' + esc(r.key) + '" title="Remover esta nota">✕</button></td></tr>';
     }).join('') || '<tr><td colspan="8" class="demo-empty">Nenhuma nota reconhecida ainda.</td></tr>';
 
     var dis = a.rows.length === 0;
     $('demo-btn-xlsx').disabled = dis; $('demo-btn-pdf').disabled = dis;
+    $('demo-btn-notas').disabled = dis;
+    $('demo-btn-notas').textContent = '⬇ BAIXAR AS ' + a.rows.length + ' NOTAS';
   }
   var current = { rows: [], alerts: [], stats: {} };
 
@@ -441,6 +452,21 @@
     download(doc.output('blob'), fileBase() + '.pdf');
   }
 
+  // ZIP só com as notas que entraram no demonstrativo, nomeadas com o ID final (-1, -2...)
+  async function exportNotas() {
+    if (!current.rows.length) return;
+    if (!root.JSZip) { alert('Biblioteca de ZIP não carregou. Verifique a internet e recarregue (F5).'); return; }
+    var zip = new root.JSZip(), byKey = {};
+    entries.forEach(function (e) { byKey[e.key] = e; });
+    current.rows.forEach(function (r) {
+      var e = byKey[r.key];
+      if (e && e.file) zip.file(r.id.replace(/[\\/:*?"<>|]+/g, '_') + '.pdf', e.file);
+    });
+    var blob = await zip.generateAsync({ type: 'blob' });
+    var d = ($('demo-driver').value || '').trim().replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ');
+    download(blob, 'NOTAS FISCAIS' + (d ? ' - ' + d : '') + '.zip');
+  }
+
   function init() {
     var drop = $('demo-drop'), input = $('demo-file');
     if (!drop || !input) return;
@@ -452,6 +478,7 @@
     drop.addEventListener('drop', function (e) { if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files); });
     $('demo-btn-xlsx').addEventListener('click', exportXlsx);
     $('demo-btn-pdf').addEventListener('click', exportPdf);
+    $('demo-btn-notas').addEventListener('click', exportNotas);
     $('demo-btn-clear').addEventListener('click', function () {
       if (entries.length && !confirm('Limpar todas as notas carregadas?')) return;
       entries = []; seen = {}; extraNotes = []; render();
