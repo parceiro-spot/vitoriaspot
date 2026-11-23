@@ -26,3 +26,4 @@ Abra `index.html` diretamente ou publique os três arquivos juntos. O armazename
 - Removeu uma nota no ✕ (ou clicou em Limpar tudo) sem querer? Aperte **Ctrl+Z** (ou o botão "Desfazer" que aparece embaixo) e ela volta no mesmo lugar. Dá para desfazer várias vezes.
 - A ordem do demonstrativo é a mesma ordem em que os arquivos foram enviados (a ordem da pasta do PC). O sistema não reordena por nome.
 - Nota com vários itens: o demonstrativo copia sempre só a descrição do **1º item** (ex.: `7908790700090 - Renovador Olhos de Gueixa - F2`), com quantidade 1 e o VALOR TOTAL DA NOTA. Um aviso informa que a nota tinha mais itens.
+- Colunas SHP_SHIPMENT_ID, TMS_DATA_FISCAL_NFE, NF e VALOR esticam sozinhas (como o clique duplo na borda da coluna do Excel) quando o conteúdo é maior, no XLSX e no PDF. No PDF todas as linhas ficam com a mesma altura (linha única); a descrição usa o espaço que sobrar e, se precisar, as margens da página diminuem em vez de a fonte encolher.

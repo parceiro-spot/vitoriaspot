@@ -262,14 +262,42 @@
   /* ------------------------------------------------------------------ */
   var HEADERS = ['SHP_SHIPMENT_ID', 'TMS_DATA_FISCAL_NFE', 'NF', 'ITEM', 'QUANTIDADE ITEM', 'VALOR', 'STATUS'];
 
+  // Largura de coluna do Excel (em "caracteres") que cabe o texto em Arial: igual ao clique duplo na borda da coluna.
+  function excelUnits(text, sizePt) {
+    text = String(text);
+    try {
+      if (typeof document !== 'undefined') {
+        var cv = excelUnits._cv || (excelUnits._cv = document.createElement('canvas'));
+        var ctx = cv.getContext('2d');
+        ctx.font = (sizePt * 96 / 72) + 'px Arial, Helvetica, sans-serif';
+        var px = ctx.measureText(text).width;
+        if (px > 0) return px / 7 + 1;
+      }
+    } catch (e) { /* usa a estimativa abaixo */ }
+    return text.length * 1.15 + 1;
+  }
+
   async function buildXlsx(ExcelJS, rows) {
     var wb = new ExcelJS.Workbook();
     var ws = wb.addWorksheet('DEMONSTRATIVO DE PREJUÍZO', {
       views: [{ state: 'frozen', ySplit: 1 }],
       pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
     });
-    var maxId = rows.reduce(function (m, r) { return Math.max(m, String(r.id).length); }, 0);
-    var widths = [Math.max(19, maxId + 3), 54.88, 12.88, 98.88, 19, 14.75, 17.13];   // ID grande estica a coluna A
+    // Auto-ajuste (como o clique duplo na borda): A, B, C e VALOR esticam só se o conteúdo for maior que o padrão do modelo.
+    // A descrição (D), QUANTIDADE e STATUS ficam como no modelo.
+    var fit = function (def, getter, headTxt, headSize) {
+      var w = excelUnits(headTxt, headSize);
+      rows.forEach(function (r) { w = Math.max(w, excelUnits(getter(r), 11)); });
+      return Math.max(def, Math.ceil(w * 100) / 100);
+    };
+    var widths = [
+      fit(19, function (r) { return r.id; }, HEADERS[0], 10),
+      fit(54.88, function (r) { return r.chave; }, HEADERS[1], 11),
+      fit(12.88, function (r) { return formatNF(r.nf); }, HEADERS[2], 11),
+      98.88, 19,
+      fit(14.75, function (r) { return formatBRL(r.valor); }, HEADERS[5], 11),
+      17.13
+    ];
     widths.forEach(function (w, i) { ws.getColumn(i + 1).width = w; });
     var thin = { style: 'thin', color: { argb: 'FF000000' } };
     var border = { left: thin, right: thin, top: thin, bottom: thin };
@@ -306,30 +334,41 @@
     var body = rows.map(function (r) {
       return [r.id, r.chave, formatNF(r.nf), r.item, Number(r.qtd).toLocaleString('pt-BR'), formatBRL(r.valor), r.status];
     });
-    // Colunas SHP_SHIPMENT_ID, TMS_DATA_FISCAL_NFE e NF: esticadas pelo texto mais comprido (sem quebra).
-    // A coluna ITEM (descrição) fica com o espaço que sobrar.
+    // Todas as colunas (menos a descrição) são ajustadas ao texto, como o clique duplo no Excel: nada quebra.
+    // A descrição fica com o espaço que sobrar. Se ainda assim não couber, as margens da página diminuem
+    // (mesma fonte, linha única). Só em último caso a descrição quebra em 2 linhas.
     doc.setFont('helvetica', 'normal');
-    var need = [0, 0, 0];
-    [0, 1, 2].forEach(function (c) {
+    var need = [0, 0, 0, 0, 0, 0, 0];
+    for (var c = 0; c < 7; c++) {
       doc.setFontSize(5.6);
       body.forEach(function (r) { need[c] = Math.max(need[c], doc.getTextWidth(String(r[c]))); });
-      doc.setFontSize(c === 0 ? 5.1 : 5.6);
-      need[c] = Math.max(need[c], doc.getTextWidth(HEADERS[c]));
-    });
-    var PAD = 7;   // folga (padding + margem de segurança) em pt
-    var minW = [59.6, 172.1, 40.4];
-    var w = need.map(function (n, c) { return Math.max(minW[c], Math.ceil(n + PAD)); });
-    var wE = 59.6, wF = 46.3, wG = 53.5;
-    var wD = 741.6 - (w[0] + w[1] + w[2] + wE + wF + wG);
-    if (wD < 150) wD = 150;   // segurança: descrição nunca fica espremida demais
-    var tableW = w[0] + w[1] + w[2] + wD + wE + wF + wG;
+      if (c !== 3) { doc.setFontSize((c === 0 || c === 4) ? 5.1 : 5.6); need[c] = Math.max(need[c], doc.getTextWidth(HEADERS[c])); }
+    }
+    var PAD = 8;   // padding + folga de segurança (pt)
+    var pageW = doc.internal.pageSize.getWidth();
+    var w = need.map(function (n) { return Math.ceil(n + PAD); });
+    var others = w[0] + w[1] + w[2] + w[4] + w[5] + w[6];
+    var dNeed = Math.ceil(need[3] + PAD);
+    var mLR = 50.4, avail = pageW - 2 * mLR;      // margens do modelo (0,7")
+    var wD;
+    if (others + dNeed <= avail) { wD = avail - others; }                       // sobra espaço: descrição absorve
+    else {
+      mLR = Math.max(15, (pageW - (others + dNeed)) / 2);                        // diminui as margens
+      avail = pageW - 2 * mLR;
+      wD = Math.min(dNeed, avail - others);                                      // se ainda não couber, quebra em 2 linhas
+      if (others + wD < avail) wD = avail - others;
+    }
+    var tableW = others + wD;
     autoTable(doc, {
       head: [HEADERS], body: body, theme: 'grid',
-      margin: { top: 54, right: 50.4, bottom: 54, left: 50.4 },
+      margin: { top: 54, right: mLR, bottom: 54, left: mLR },
       tableWidth: tableW,
       styles: { font: 'helvetica', fontStyle: 'normal', fontSize: 5.6, cellPadding: 0.8, halign: 'center', valign: 'middle', textColor: 0, lineColor: 0, lineWidth: 0.25, overflow: 'linebreak' },
       headStyles: { fillColor: [255, 255, 255], textColor: 0, fontStyle: 'normal', fontSize: 5.6, lineColor: 0, lineWidth: 0.25 },
-      columnStyles: { 0: { cellWidth: w[0], overflow: 'visible' }, 1: { cellWidth: w[1], overflow: 'visible' }, 2: { cellWidth: w[2], overflow: 'visible' }, 3: { cellWidth: wD }, 4: { cellWidth: wE }, 5: { cellWidth: wF }, 6: { cellWidth: wG } },
+      columnStyles: {
+        0: { cellWidth: w[0], overflow: 'visible' }, 1: { cellWidth: w[1], overflow: 'visible' }, 2: { cellWidth: w[2], overflow: 'visible' },
+        3: { cellWidth: wD }, 4: { cellWidth: w[4], overflow: 'visible' }, 5: { cellWidth: w[5], overflow: 'visible' }, 6: { cellWidth: w[6], overflow: 'visible' }
+      },
       showHead: 'everyPage',
       didParseCell: function (h) {
         if (h.section === 'head' && (h.column.index === 0 || h.column.index === 4)) h.cell.styles.fontSize = 5.1;
