@@ -25,3 +25,4 @@ Abra `index.html` diretamente ou publique os três arquivos juntos. O armazename
 - PDF exportado igual ao modelo: A4 paisagem, Arial 5,6 pt em todas as linhas. A fonte **não diminui** em descrição grande; ela quebra em 2 linhas no mesmo tamanho.
 - Removeu uma nota no ✕ (ou clicou em Limpar tudo) sem querer? Aperte **Ctrl+Z** (ou o botão "Desfazer" que aparece embaixo) e ela volta no mesmo lugar. Dá para desfazer várias vezes.
 - A ordem do demonstrativo é a mesma ordem em que os arquivos foram enviados (a ordem da pasta do PC). O sistema não reordena por nome.
+- Nota com vários itens: o demonstrativo copia sempre só a descrição do **1º item** (ex.: `7908790700090 - Renovador Olhos de Gueixa - F2`), com quantidade 1 e o VALOR TOTAL DA NOTA. Um aviso informa que a nota tinha mais itens.

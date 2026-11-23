@@ -149,9 +149,9 @@
     }
 
     out.itens = rows.map(function (x) { return { desc: x.desc, qtd: x.qtd }; });
-    out.item = out.itens.map(function (x) { return x.desc; }).join(' + ');
+    out.item = out.itens[0].desc; // nota com vários itens: copia sempre a descrição do 1º item
     out.qtd = 1; // quantidade padrão do demonstrativo
-    if (out.itens.length > 1) out.warnings.push('nota com ' + out.itens.length + ' itens — descrições unidas com "+" em uma linha só (quantidade 1); confira');
+    if (out.itens.length > 1) out.warnings.push('nota com ' + out.itens.length + ' itens — foi copiada só a descrição do 1º item (quantidade 1)');
     if (pages.length > 1) out.warnings.push('nota com ' + pages.length + ' páginas — só a 1ª página foi lida para os itens; confira');
     out.ok = true;
     return out;
