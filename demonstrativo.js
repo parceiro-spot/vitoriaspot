@@ -268,7 +268,9 @@
       views: [{ state: 'frozen', ySplit: 1 }],
       pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
     });
-    [19, 54.88, 12.88, 98.88, 19, 14.75, 17.13].forEach(function (w, i) { ws.getColumn(i + 1).width = w; });
+    var maxId = rows.reduce(function (m, r) { return Math.max(m, String(r.id).length); }, 0);
+    var widths = [Math.max(19, maxId + 3), 54.88, 12.88, 98.88, 19, 14.75, 17.13];   // ID grande estica a coluna A
+    widths.forEach(function (w, i) { ws.getColumn(i + 1).width = w; });
     var thin = { style: 'thin', color: { argb: 'FF000000' } };
     var border = { left: thin, right: thin, top: thin, bottom: thin };
     var font = { name: 'Arial', size: 11, color: { argb: 'FF000000' } };
@@ -304,13 +306,30 @@
     var body = rows.map(function (r) {
       return [r.id, r.chave, formatNF(r.nf), r.item, Number(r.qtd).toLocaleString('pt-BR'), formatBRL(r.valor), r.status];
     });
+    // Colunas SHP_SHIPMENT_ID, TMS_DATA_FISCAL_NFE e NF: esticadas pelo texto mais comprido (sem quebra).
+    // A coluna ITEM (descrição) fica com o espaço que sobrar.
+    doc.setFont('helvetica', 'normal');
+    var need = [0, 0, 0];
+    [0, 1, 2].forEach(function (c) {
+      doc.setFontSize(5.6);
+      body.forEach(function (r) { need[c] = Math.max(need[c], doc.getTextWidth(String(r[c]))); });
+      doc.setFontSize(c === 0 ? 5.1 : 5.6);
+      need[c] = Math.max(need[c], doc.getTextWidth(HEADERS[c]));
+    });
+    var PAD = 7;   // folga (padding + margem de segurança) em pt
+    var minW = [59.6, 172.1, 40.4];
+    var w = need.map(function (n, c) { return Math.max(minW[c], Math.ceil(n + PAD)); });
+    var wE = 59.6, wF = 46.3, wG = 53.5;
+    var wD = 741.6 - (w[0] + w[1] + w[2] + wE + wF + wG);
+    if (wD < 150) wD = 150;   // segurança: descrição nunca fica espremida demais
+    var tableW = w[0] + w[1] + w[2] + wD + wE + wF + wG;
     autoTable(doc, {
       head: [HEADERS], body: body, theme: 'grid',
       margin: { top: 54, right: 50.4, bottom: 54, left: 50.4 },
-      tableWidth: 741.6,
+      tableWidth: tableW,
       styles: { font: 'helvetica', fontStyle: 'normal', fontSize: 5.6, cellPadding: 0.8, halign: 'center', valign: 'middle', textColor: 0, lineColor: 0, lineWidth: 0.25, overflow: 'linebreak' },
       headStyles: { fillColor: [255, 255, 255], textColor: 0, fontStyle: 'normal', fontSize: 5.6, lineColor: 0, lineWidth: 0.25 },
-      columnStyles: { 0: { cellWidth: 59.6 }, 1: { cellWidth: 172.1, overflow: 'visible' }, 2: { cellWidth: 40.4 }, 3: { cellWidth: 310.1 }, 4: { cellWidth: 59.6 }, 5: { cellWidth: 46.3 }, 6: { cellWidth: 53.5 } },
+      columnStyles: { 0: { cellWidth: w[0], overflow: 'visible' }, 1: { cellWidth: w[1], overflow: 'visible' }, 2: { cellWidth: w[2], overflow: 'visible' }, 3: { cellWidth: wD }, 4: { cellWidth: wE }, 5: { cellWidth: wF }, 6: { cellWidth: wG } },
       showHead: 'everyPage',
       didParseCell: function (h) {
         if (h.section === 'head' && (h.column.index === 0 || h.column.index === 4)) h.cell.styles.fontSize = 5.1;
