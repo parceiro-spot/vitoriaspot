@@ -284,6 +284,7 @@ que os pacotes se tornem LOST.</p>
       <button class="tab-btn active" onclick="showTab('sin-irisys', this)">IRISYS</button>
       <button class="tab-btn" onclick="showTab('sin-serra', this)">SERRA</button>
       <button class="tab-btn" onclick="showTab('sin-mensagens', this)">MENSAGENS</button>
+      <button class="tab-btn" onclick="showTab('sin-demonstrativo', this)">DEMONSTRATIVO</button>
     </div>
 
     <div id="sin-irisys" class="tab-content active">
@@ -511,8 +512,49 @@ Estimativa do Prejuízo: VALOR DO SINISTRO.</p>
         </div>
       </div>
     </div>
-  </div>
 
+    <div id="sin-demonstrativo" class="tab-content hidden">
+      <div class="card demo-card">
+        <h3>🧾 DEMONSTRATIVO DE PREJUÍZO</h3>
+        <p class="tip">💡 Arraste (ou selecione) todas as notas fiscais em PDF de uma vez. O <strong>nome de cada arquivo é o ID</strong> (ex: <code>48054508351_17.pdf</code>). O valor usado é sempre o <strong>VALOR TOTAL DA NOTA</strong>.</p>
+
+        <div id="demo-drop" class="demo-drop" tabindex="0" role="button" aria-label="Adicionar notas fiscais em PDF">
+          <div class="demo-drop-icon">📄</div>
+          <strong>Solte as notas fiscais aqui</strong>
+          <span>ou clique para escolher os PDFs (pode selecionar vários)</span>
+          <input type="file" id="demo-file" accept="application/pdf,.pdf" multiple hidden>
+        </div>
+        <div id="demo-progress" class="demo-progress hidden"></div>
+
+        <div id="demo-results" class="hidden">
+          <div class="demo-dash">
+            <div class="demo-stat"><span id="demo-stat-notas">0</span><label>Notas no demonstrativo</label></div>
+            <div class="demo-stat"><span id="demo-stat-total">R$ 0,00</span><label>Valor total</label></div>
+            <div class="demo-stat"><span id="demo-stat-ren">0</span><label>IDs repetidos renomeados</label></div>
+            <div class="demo-stat"><span id="demo-stat-prob">0</span><label>Notas com problema (fora)</label></div>
+          </div>
+
+          <div id="demo-obs" class="demo-obs"></div>
+
+          <div class="manual-toolbar demo-actions">
+            <label class="demo-driver">Nome do motorista (opcional — vai no nome do arquivo)
+              <input type="text" id="demo-driver" placeholder="Ex: Davi Alison Jacinto Batista">
+            </label>
+            <button type="button" id="demo-btn-xlsx" class="editor-btn primary">⬇ Baixar XLSX</button>
+            <button type="button" id="demo-btn-pdf" class="editor-btn primary">⬇ Baixar PDF</button>
+            <button type="button" id="demo-btn-clear" class="editor-btn">🗑 Limpar tudo</button>
+          </div>
+
+          <div class="demo-table-wrap">
+            <table class="demo-table">
+              <thead><tr><th>SHP_SHIPMENT_ID</th><th>TMS_DATA_FISCAL_NFE</th><th>NF</th><th>ITEM</th><th>QUANTIDADE ITEM</th><th>VALOR</th><th>STATUS</th><th></th></tr></thead>
+              <tbody id="demo-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- SEÇÃO PNR MANUAL -->
   <div id="pnr" class="section hidden">
@@ -638,6 +680,12 @@ Estimativa do Prejuízo: VALOR DO SINISTRO.</p>
   <!-- TOAST DE CÓPIA -->
   <div id="toast" class="hidden">📋 Texto copiado!</div>
 
+  <!-- Bibliotecas do DEMONSTRATIVO (leitura de PDF, exportação XLSX e PDF) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <script src="script.js"></script>
+  <script src="demonstrativo.js"></script>
 </body>
 </html>
