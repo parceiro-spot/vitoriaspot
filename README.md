@@ -20,3 +20,5 @@ Abra `index.html` diretamente ou publique os três arquivos juntos. O armazename
 - Exporta em **XLSX** e **PDF**. Tudo é lido no próprio navegador (nenhum arquivo é enviado para servidor).
 - Precisa de internet para carregar as bibliotecas (pdf.js, ExcelJS, jsPDF) do cdnjs.
 - Botão **BAIXAR AS N NOTAS**: baixa um ZIP só com as notas que entraram no demonstrativo, nomeadas com o ID final (`-1`, `-2`...). Notas não reconhecidas ou repetidas ficam de fora.
+
+- Nome repetido **com as mesmas informações** (mesma NF, descrição, quantidade e valor): aparece um aviso vermelho "REPETIDA E IGUAL" no painel de observações, além do aviso de ID repetido. Se for a mesma chave de acesso, a repetição fica de fora.

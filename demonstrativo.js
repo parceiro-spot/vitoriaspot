@@ -232,13 +232,29 @@
           text: 'O nome ' + base + ' apareceu em ' + g.length + ' notas (NF ' + g.map(function (e) { return e.res.nf; }).join(', ') +
             '). A 1ª manteve o nome ' + base + ' e as demais ficaram como: ' + changes.join(', ') + '.'
         });
+        // repetido com as MESMAS informações da 1ª nota? (NF, descrição, quantidade e valor)
+        var f = g[0];
+        g.slice(1).forEach(function (e, i) {
+          var same = [];
+          if (String(e.res.nf) === String(f.res.nf)) same.push('mesma NF (' + e.res.nf + ')');
+          if (norm(e.res.item) === norm(f.res.item)) same.push('mesma descrição');
+          if (Number(e.res.qtd) === Number(f.res.qtd)) same.push('mesma quantidade');
+          if (cents(e.res.valor) === cents(f.res.valor)) same.push('mesmo valor');
+          if (same.length === 4) {
+            alerts.push({
+              type: 'igual', id: base + '-' + (i + 1),
+              text: 'Nota repetida com as MESMAS informações da nota ' + base + ': ' + same.join(', ') +
+                '. Ela foi mantida no demonstrativo como ' + base + '-' + (i + 1) + ' e o valor está sendo somado de novo. Confira se não é a mesma nota enviada duas vezes.'
+            });
+          }
+        });
       }
     });
 
     var totalCents = rows.reduce(function (n, r) { return n + cents(r.valor); }, 0);
-    var rank = { erro: 0, repetida: 1, duplicado: 2, atencao: 3 };
+    var rank = { erro: 0, repetida: 1, igual: 2, duplicado: 3, atencao: 4 };
     alerts.sort(function (a, b) { return rank[a.type] - rank[b.type]; });
-    return { rows: rows, alerts: alerts, stats: { notas: rows.length, total: totalCents / 100, renomeados: renamed, problemas: alerts.filter(function (a) { return a.type === 'erro' || a.type === 'repetida'; }).length } };
+    return { rows: rows, alerts: alerts, stats: { notas: rows.length, total: totalCents / 100, renomeados: renamed, problemas: alerts.filter(function (a) { return a.type === 'erro' || a.type === 'repetida' || a.type === 'igual'; }).length } };
   }
 
   /* ------------------------------------------------------------------ */
@@ -387,8 +403,8 @@
   }
   var extraNotes = [];
 
-  var ICON = { erro: '❌', repetida: '♻️', duplicado: '🔁', atencao: '⚠️' };
-  var LABEL = { erro: 'NÃO RECONHECIDA', repetida: 'NF REPETIDA', duplicado: 'ID REPETIDO', atencao: 'ATENÇÃO' };
+  var ICON = { erro: '❌', repetida: '♻️', igual: '🚨', duplicado: '🔁', atencao: '⚠️' };
+  var LABEL = { erro: 'NÃO RECONHECIDA', repetida: 'NF REPETIDA', igual: 'REPETIDA E IGUAL', duplicado: 'ID REPETIDO', atencao: 'ATENÇÃO' };
 
   function render() {
     var a = assemble(entries);
@@ -398,7 +414,7 @@
     $('demo-stat-notas').textContent = a.stats.notas;
     $('demo-stat-total').textContent = formatBRL(a.stats.total);
     $('demo-stat-ren').textContent = a.stats.renomeados;
-    $('demo-stat-prob').textContent = a.alerts.filter(function (x) { return x.type === 'erro' || x.type === 'repetida'; }).length;
+    $('demo-stat-prob').textContent = a.stats.problemas;
     $('demo-stat-prob').parentElement.classList.toggle('demo-stat-bad', a.stats.problemas > 0);
 
     var obs = $('demo-obs');

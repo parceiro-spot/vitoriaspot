@@ -619,6 +619,7 @@ body {
 .demo-obs-tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.3px;margin-right:4px}
 .demo-obs .demo-obs-erro{border-left-color:#dc2626;background:#fef2f2}
 .demo-obs .demo-obs-repetida{border-left-color:#7c3aed;background:#f5f3ff}
+.demo-obs .demo-obs-igual{border-left-color:#dc2626;background:#fef2f2}
 .demo-obs .demo-obs-duplicado{border-left-color:#2563eb;background:#eff6ff}
 .demo-obs .demo-obs-atencao{border-left-color:#d97706;background:#fffbeb}
 .demo-ok{font-size:13px;font-weight:700;color:var(--spot-dark-green);background:#f0fdf4;border-radius:8px;padding:10px 12px}
