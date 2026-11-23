@@ -285,6 +285,8 @@ que os pacotes se tornem LOST.</p>
       <button class="tab-btn" onclick="showTab('sin-serra', this)">SERRA</button>
       <button class="tab-btn" onclick="showTab('sin-mensagens', this)">MENSAGENS</button>
       <button class="tab-btn" onclick="showTab('sin-demonstrativo', this)">DEMONSTRATIVO</button>
+      <button class="tab-btn" onclick="showTab('sin-agrupar', this)">AGRUPAR PDF</button>
+      <button class="tab-btn" onclick="showTab('sin-foto', this)">FOTO x PDF</button>
     </div>
 
     <div id="sin-irisys" class="tab-content active">
@@ -555,6 +557,70 @@ Estimativa do Prejuízo: VALOR DO SINISTRO.</p>
         </div>
       </div>
     </div>
+
+    <div id="sin-agrupar" class="tab-content hidden">
+      <div class="card demo-card">
+        <h3>📎 AGRUPAR PDF</h3>
+        <p class="tip">💡 Arraste (ou selecione) vários PDFs de uma vez e baixe <strong>um único PDF</strong> com todas as páginas, na <strong>mesma ordem</strong> em que você enviou (a ordem da pasta). Dá para mudar a ordem com ▲ ▼, remover com ✕ e desfazer com <strong>Ctrl+Z</strong>.</p>
+        <div id="agr-drop" class="demo-drop" tabindex="0" role="button" aria-label="Adicionar PDFs para agrupar">
+          <div class="demo-drop-icon">📎</div>
+          <strong>Solte os PDFs aqui</strong>
+          <span>ou clique para escolher os PDFs (pode selecionar vários)</span>
+          <input type="file" id="agr-file" accept="application/pdf,.pdf" multiple hidden>
+        </div>
+        <div id="agr-progress" class="demo-progress hidden"></div>
+        <div id="agr-obs" class="demo-obs"></div>
+        <div id="agr-results" class="hidden">
+          <div class="manual-toolbar demo-actions">
+            <label class="demo-driver">Nome do motorista (opcional — vai no nome do arquivo)
+              <input type="text" id="agr-name" placeholder="Ex: Ednaldo Paulo">
+            </label>
+            <button type="button" id="agr-btn" class="editor-btn primary">⬇ Baixar PDF agrupado</button>
+            <button type="button" id="agr-clear" class="editor-btn">🗑 Limpar tudo</button>
+          </div>
+          <div id="agr-summary" class="pt-summary"></div>
+          <ol id="agr-list" class="pt-list"></ol>
+        </div>
+      </div>
+    </div>
+
+    <div id="sin-foto" class="tab-content hidden">
+      <div class="card demo-card">
+        <h3>🖼️ FOTO x PDF</h3>
+        <p class="tip">💡 Arraste (ou selecione) as <strong>fotos</strong> (JPG, PNG, WEBP...) e transforme em PDF. A ordem é a mesma em que você enviou. Dá para mudar a ordem com ▲ ▼, remover com ✕ e desfazer com <strong>Ctrl+Z</strong>.</p>
+        <div id="fx-drop" class="demo-drop" tabindex="0" role="button" aria-label="Adicionar fotos para converter em PDF">
+          <div class="demo-drop-icon">🖼️</div>
+          <strong>Solte as fotos aqui</strong>
+          <span>ou clique para escolher as fotos (pode selecionar várias)</span>
+          <input type="file" id="fx-file" accept="image/*" multiple hidden>
+        </div>
+        <div id="fx-progress" class="demo-progress hidden"></div>
+        <div id="fx-obs" class="demo-obs"></div>
+        <div id="fx-results" class="hidden">
+          <div class="manual-toolbar demo-actions">
+            <label class="demo-driver">Nome do arquivo (opcional)
+              <input type="text" id="fx-name" placeholder="Ex: Fotos - Ednaldo Paulo">
+            </label>
+            <label class="pt-select">Resultado
+              <select id="fx-mode">
+                <option value="single">1 PDF com todas as fotos</option>
+                <option value="each">1 PDF para cada foto (ZIP)</option>
+              </select>
+            </label>
+            <label class="pt-select">Página
+              <select id="fx-page">
+                <option value="a4">A4 (foto ajustada)</option>
+                <option value="original">Do tamanho da foto</option>
+              </select>
+            </label>
+            <button type="button" id="fx-btn" class="editor-btn primary">⬇ Baixar PDF</button>
+            <button type="button" id="fx-clear" class="editor-btn">🗑 Limpar tudo</button>
+          </div>
+          <div id="fx-summary" class="pt-summary"></div>
+          <ol id="fx-list" class="pt-list"></ol>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- SEÇÃO PNR MANUAL -->
@@ -685,9 +751,11 @@ Estimativa do Prejuízo: VALOR DO SINISTRO.</p>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <script src="script.js"></script>
   <script src="demonstrativo.js"></script>
+  <script src="pdftools.js"></script>
 </body>
 </html>

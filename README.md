@@ -27,3 +27,13 @@ Abra `index.html` diretamente ou publique os três arquivos juntos. O armazename
 - A ordem do demonstrativo é a mesma ordem em que os arquivos foram enviados (a ordem da pasta do PC). O sistema não reordena por nome.
 - Nota com vários itens: o demonstrativo copia sempre só a descrição do **1º item** (ex.: `7908790700090 - Renovador Olhos de Gueixa - F2`), com quantidade 1 e o VALOR TOTAL DA NOTA. Um aviso informa que a nota tinha mais itens.
 - Colunas SHP_SHIPMENT_ID, TMS_DATA_FISCAL_NFE, NF e VALOR esticam sozinhas (como o clique duplo na borda da coluna do Excel) quando o conteúdo é maior, no XLSX e no PDF. No PDF todas as linhas ficam com a mesma altura (linha única); a descrição usa o espaço que sobrar e, se precisar, as margens da página diminuem em vez de a fonte encolher.
+
+## Sinistro > AGRUPAR PDF
+- Arraste vários PDFs e baixe **um único PDF** com todas as páginas, na mesma ordem em que foram enviados (ordem da pasta do PC). O nome sai como `Notas Fiscais - <motorista>.pdf`.
+- ▲ ▼ mudam a ordem, ✕ remove e **Ctrl+Z** desfaz. PDF corrompido ou com senha é avisado e fica de fora.
+
+## Sinistro > FOTO x PDF
+- Arraste fotos (JPG, PNG, WEBP...) e gere **1 PDF com todas as fotos** (1 por página) ou **1 PDF para cada foto** (ZIP).
+- Página **A4** (foto ajustada, retrato ou paisagem conforme a foto) ou **do tamanho da foto**. A orientação da foto do celular é respeitada.
+- Mesma ordem em que as fotos foram enviadas; ▲ ▼ ✕ e Ctrl+Z funcionam igual. HEIC/HEIF não é aceito pelo navegador (avisa para enviar em JPG/PNG).
+- Usa a biblioteca pdf-lib (cdnjs), então precisa de internet.
