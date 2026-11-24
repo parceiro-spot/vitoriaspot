@@ -517,18 +517,17 @@
     var dis = a.rows.length === 0;
     $('demo-btn-xlsx').disabled = dis; $('demo-btn-pdf').disabled = dis;
     $('demo-btn-notas').disabled = dis;
-    $('demo-btn-notas-todas').disabled = !a.allValid.length;
-    $('demo-btn-notas-todas').textContent = '⬇ BAIXAR TODAS AS ' + a.allValid.length + ' NOTAS';
-    $('demo-btn-notas').textContent = '⬇ BAIXAR SEM DUPLICADAS IGUAIS (' + a.rows.length + ')';
+    $('demo-btn-notas').textContent = '⬇ BAIXAR NOTAS (' + a.rows.length + ')';
     $('demo-btn-agrupar').disabled = !a.rows.length;
     $('demo-btn-agrupar').textContent = '⬇ AGRUPAR TODAS AS ' + a.rows.length + ' NOTAS';
     var temDuplicadas = a.duplicadasIguais.length > 0;
-    $('demo-btn-notas-duplicadas').classList.toggle('hidden', !temDuplicadas);
-    $('demo-btn-notas-duplicadas').disabled = !temDuplicadas;
-    $('demo-btn-notas-duplicadas').textContent = '⬇ BAIXAR NOTAS DUPLICADAS IGUAIS (' + a.duplicadasIguais.length + ')';
+    var temIdDuplicado = temDuplicadas || a.stats.renomeados > 0;
+    $('demo-btn-notas-duplicadas').classList.toggle('hidden', !temIdDuplicado);
+    $('demo-btn-notas-duplicadas').disabled = !temIdDuplicado;
+    $('demo-btn-notas-duplicadas').textContent = temDuplicadas ? '⬇ BAIXAR COM DUPLICADAS' : '⚠ BAIXAR COM ID DUPLICADO';
     $('demo-btn-agrupar-duplicadas').classList.toggle('hidden', !temDuplicadas);
     $('demo-btn-agrupar-duplicadas').disabled = !temDuplicadas;
-    $('demo-btn-agrupar-duplicadas').textContent = '⬇ AGRUPAR NOTAS DUPLICADAS IGUAIS (' + a.duplicadasIguais.length + ')';
+    $('demo-btn-agrupar-duplicadas').textContent = '⬇ AGRUPAR COM DUPLICADAS';
   }
   var current = { rows: [], alerts: [], stats: {} };
 
@@ -646,8 +645,8 @@
     try {
       btn.disabled = true; btn.textContent = 'Juntando…';
       var out = await root.PDFLib.PDFDocument.create();
-      for (var i = 0; i < current.duplicadasIguais.length; i++) {
-        var src = await root.PDFLib.PDFDocument.load(await current.duplicadasIguais[i].file.arrayBuffer(), { ignoreEncryption: true });
+      for (var i = 0; i < current.allValid.length; i++) {
+        var src = await root.PDFLib.PDFDocument.load(await current.allValid[i].file.arrayBuffer(), { ignoreEncryption: true });
         var pages = await out.copyPages(src, src.getPageIndices());
         pages.forEach(function (page) { out.addPage(page); });
       }
@@ -672,10 +671,9 @@
     drop.addEventListener('drop', function (e) { if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files); });
     $('demo-btn-xlsx').addEventListener('click', exportXlsx);
     $('demo-btn-pdf').addEventListener('click', exportPdf);
-    $('demo-btn-notas-todas').addEventListener('click', exportTodasNotas);
     $('demo-btn-notas').addEventListener('click', exportNotas);
     $('demo-btn-agrupar').addEventListener('click', exportAgrupado);
-    $('demo-btn-notas-duplicadas').addEventListener('click', exportNotasDuplicadas);
+    $('demo-btn-notas-duplicadas').addEventListener('click', exportTodasNotas);
     $('demo-btn-agrupar-duplicadas').addEventListener('click', exportAgrupadoDuplicadas);
     // ---- Desfazer (Ctrl+Z) para remoção de nota (✕) e "Limpar tudo" ----
     var undoStack = [], toastTimer = null;
