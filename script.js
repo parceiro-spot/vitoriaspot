@@ -686,6 +686,58 @@ function restartGame() {
     qs('[data-format-messages]')?.addEventListener('click',()=>document.execCommand('bold'));
     qs('[data-color-messages]')?.addEventListener('input',e=>{document.execCommand('foreColor',false,e.target.value);});
     qs('[data-save-messages]')?.addEventListener('click',()=>{save(MSG_KEY,boxes.map(b=>b.innerHTML));save(MSG_TITLE_KEY,qsa('[data-manual-title]',card).map(h=>h.textContent));state(status,'Mensagens salvas');});
+
+    // ===== GERADOR EDITÁVEL DE AVISO DE SINISTRO =====
+    const generator=qs('#sinistro-generator');
+    if(generator){
+      const field=id=>qs('#'+id), source=field('sinistro-report-input'), output=field('sinistro-report-output'), reportState=field('sinistro-report-state');
+      const value=(id)=>String(field(id)?.value||'').trim();
+      const set=(id,v)=>{if(field(id))field(id).value=String(v||'').trim();};
+      const clean=(v)=>String(v||'').replace(/[ \t]+/g,' ').trim();
+      const fromLine=(re,text)=>{const m=text.match(re);return m?clean(m[1].replace(/[⚠️❌✅]+$/g,'')):'';};
+      const generate=()=>{
+        const causa=value('sg-causa')||'ROUBO', motorista=value('sg-motorista'), placa=value('sg-placa'), data=value('sg-data'), datahora=value('sg-datahora')||data, cpf=value('sg-cpf'), veiculo=value('sg-veiculo'), cidade=value('sg-cidade'), qtd=value('sg-qtd'), local=value('sg-local'), prejuizo=value('sg-prejuizo');
+        output.value=`AVISO DE SINISTRO
+
+Segue abaixo dados do sinistro:
+
+${causa} | ${motorista} | ${placa} | ${data}
+
+Data e hora do sinistro: ${datahora}
+Nome do Embarcador: MERCADO ENVIOS
+Nome do Transportador: PARCEIRO SPOT SOLUÇÕES
+Motorista: ${motorista}
+CPF: ${cpf}
+Veículo: ${veiculo}
+Remetente: MERCADO ENVIOS
+Cidade UF/Remetente: ${cidade}
+Destinatário: Não Declarado.
+Quantidade sinistrada: ${qtd}
+Causa: ${causa}
+Local do Sinistro: ${local}
+Estimativa do Prejuízo: ${prejuizo}.`;
+        if(reportState)reportState.textContent='Aviso gerado — revise e edite antes de copiar';
+      };
+      qs('#sinistro-report-fill')?.addEventListener('click',()=>{
+        const text=source.value||'';
+        const data=fromLine(/^\s*🗓.*?Data\s*:\s*(.+)$/im,text);
+        const hora=fromLine(/^\s*⌚.*?Horário da ocorrência aproximadamente\s*:\s*(.+)$/im,text).replace(/h\s*$/i,'');
+        const causa=/\bFURTO\b/i.test(text)?'FURTO':'ROUBO';
+        let motorista=fromLine(/^\s*👤\s*Motorista\s*:\s*(.+)$/im,text);
+        if(!motorista){const m=text.match(/^\s*FICHA\s*-\s*(.+)$/im);motorista=m?clean(m[1]):'';}
+        const qtd=fromLine(/^\s*📦❌\s*Quantidade sinistrado\s*:\s*(.+)$/im,text);
+        set('sg-causa',causa);set('sg-motorista',motorista);set('sg-placa',fromLine(/^\s*🚘\s*Placa\s*:\s*(.+)$/im,text).replace(/\s+/g,''));set('sg-data',data);set('sg-datahora',data&&hora?data+' - '+hora:data||hora);set('sg-cpf',fromLine(/^\s*🆔\s*CPF\s*:\s*(.+)$/im,text));set('sg-veiculo',fromLine(/^\s*🚙\s*Veículo\s*:\s*(.+)$/im,text));set('sg-qtd',qtd?(qtd.replace(/\s+pacotes?$/i,'')+' pacotes'):'');set('sg-local',fromLine(/^\s*📍\s*Local\s*\(Endereço\)\s*do fato\s*:\s*(.+)$/im,text));set('sg-prejuizo',fromLine(/^\s*💰.*?Valor do sinistro\s*:\s*(.+)$/im,text));
+        generate();
+        if(reportState)reportState.textContent='Dados preenchidos — confira cidade, causa e local/CEP';
+      });
+      qs('#sinistro-report-generate')?.addEventListener('click',generate);
+      qs('#sinistro-report-copy')?.addEventListener('click',()=>{
+        const text=output.value||''; if(!text)return;
+        const done=()=>{if(reportState)reportState.textContent='Aviso copiado';};
+        navigator.clipboard?.writeText(text).then(done).catch(()=>{output.focus();output.select();document.execCommand('copy');done();});
+      });
+      qs('#sinistro-report-clear')?.addEventListener('click',()=>{source.value='';['sg-motorista','sg-placa','sg-data','sg-datahora','sg-cpf','sg-veiculo','sg-cidade','sg-qtd','sg-local','sg-prejuizo'].forEach(id=>set(id,''));set('sg-causa','ROUBO');output.value='';if(reportState)reportState.textContent='Formulário limpo';});
+    }
   }
   function noteTemplate(n,i){return `<article class="pnr-note ${n.minimized?'minimized ':''}${n.expanded?'expanded':''}" data-pnr-index="${i}"><div class="pnr-note-head"><button type="button" class="pnr-note-title" data-pnr-toggle style="color:${n.titleColor||'#111827'}">${esc(n.title||'Sem título')}</button><button type="button" class="editor-btn pnr-back" data-pnr-back>Voltar para bloco de notas</button><button type="button" class="editor-btn" data-pnr-delete>Excluir</button></div><div class="pnr-note-editor"><input class="pnr-title" value="${esc(n.title)}" style="color:${n.titleColor||'#111827'}" aria-label="Título do bloco"><textarea class="pnr-description" style="color:${n.descriptionColor||'#111827'}" placeholder="Descrição">${esc(n.description)}</textarea><div class="pnr-actions"><label>Cor do título <input type="color" data-pnr-title-color value="${n.titleColor||'#111827'}"></label><label>Cor da descrição <input type="color" data-pnr-description-color value="${n.descriptionColor||'#111827'}"></label><button type="button" class="editor-btn primary" data-pnr-save>Salvar bloco</button></div></div></article>`;}
   function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}

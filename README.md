@@ -12,6 +12,12 @@ Abra `index.html` diretamente ou publique os três arquivos juntos. O armazename
 - Navegação corrigida para todas as opções do menu, incluindo PNR e Reuniões.
 - Reuniões permitem adicionar novas informações, escolher cor, usar negrito, editar e salvar após F5.
 
+## Sinistro > Mensagens — Criar Aviso de Sinistro
+- Cole a ficha/relatório bruto no gerador e clique em **Preencher dados**.
+- O sistema identifica data, horário, motorista, placa, CPF, veículo, quantidade sinistrada, local, valor e causa quando disponíveis.
+- Cidade/UF, CEP, causa e qualquer outro campo podem ser corrigidos manualmente nos campos editáveis antes de clicar em **Gerar aviso**.
+- O texto final também é editável e pode ser copiado pelo botão **Copiar aviso**.
+
 ## Sinistro > DEMONSTRATIVO
 - Arraste várias notas fiscais (DANFE em PDF) de uma vez. O **nome do arquivo é o ID** (ex.: `48054508351_17.pdf`).
 - O demonstrativo é montado automaticamente no mesmo formato da planilha modelo (SHP_SHIPMENT_ID, TMS_DATA_FISCAL_NFE, NF, ITEM, QUANTIDADE ITEM, VALOR, STATUS). O valor é sempre o **VALOR TOTAL DA NOTA**.

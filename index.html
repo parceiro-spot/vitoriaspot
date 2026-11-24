@@ -399,6 +399,41 @@ que os pacotes se tornem LOST.</p>
         <h3>📋 Mensagens Copiáveis</h3>
         <p class="tip">💡 Clique em qualquer mensagem para copiar automaticamente!</p>
 
+        <div class="sinistro-generator" id="sinistro-generator">
+          <h4>🧾 Criar Aviso de Sinistro automaticamente</h4>
+          <p class="manual-help">Cole abaixo a ficha/relatório bruto. O sistema identifica os dados conhecidos e preenche os campos editáveis.</p>
+          <label class="sinistro-generator-source">Relatório bruto
+            <textarea id="sinistro-report-input" rows="13" placeholder="Cole aqui a FICHA do sinistro..."></textarea>
+          </label>
+          <div class="sinistro-generator-actions">
+            <button type="button" class="editor-btn primary" id="sinistro-report-fill">Preencher dados</button>
+            <button type="button" class="editor-btn" id="sinistro-report-clear">Limpar formulário</button>
+            <span class="save-state" id="sinistro-report-state"></span>
+          </div>
+          <div class="sinistro-generator-fields">
+            <label>Causa
+              <select id="sg-causa"><option value="ROUBO">ROUBO</option><option value="FURTO">FURTO</option></select>
+            </label>
+            <label>Motorista<input id="sg-motorista" type="text"></label>
+            <label>Placa<input id="sg-placa" type="text"></label>
+            <label>Data<input id="sg-data" type="text" placeholder="20/11/2026"></label>
+            <label>Data e hora do sinistro<input id="sg-datahora" type="text" placeholder="20/11/2026 - 17:00"></label>
+            <label>CPF<input id="sg-cpf" type="text"></label>
+            <label>Veículo<input id="sg-veiculo" type="text"></label>
+            <label>Cidade UF/Remetente<input id="sg-cidade" type="text" placeholder="Ex.: Rio de Janeiro - RJ"></label>
+            <label>Quantidade sinistrada<input id="sg-qtd" type="text" placeholder="59 pacotes"></label>
+            <label>Local do Sinistro<input id="sg-local" type="text" placeholder="Endereço, cidade, UF e CEP"></label>
+            <label>Estimativa do Prejuízo<input id="sg-prejuizo" type="text" placeholder="5.382,28"></label>
+          </div>
+          <div class="sinistro-generator-actions">
+            <button type="button" class="editor-btn primary" id="sinistro-report-generate">Gerar aviso</button>
+            <button type="button" class="editor-btn" id="sinistro-report-copy">Copiar aviso</button>
+          </div>
+          <label class="sinistro-generator-output">Aviso final — você também pode editar este texto manualmente
+            <textarea id="sinistro-report-output" rows="18" placeholder="O aviso gerado aparecerá aqui..."></textarea>
+          </label>
+        </div>
+
         <h4>🟠 FICHA SHOPEE</h4>
         <div class="copy-box" onclick="copyText(this)">
           <p class="pre-line">SINISTRO
