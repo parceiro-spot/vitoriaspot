@@ -182,13 +182,24 @@
     });
 
     // mesma NF (chave) enviada duas vezes -> ignora a repetição
-    var seenChave = {}, unique = [];
+    var seenChave = {}, unique = [], duplicadasIguais = [], iguaisPorChave = 0;
+    function mesmaNota(a, b) {
+      return String(a.res.nf) === String(b.res.nf) &&
+        norm(a.res.item) === norm(b.res.item) &&
+        String(a.res.chave) === String(b.res.chave) &&
+        Number(a.res.qtd) === Number(b.res.qtd) &&
+        cents(a.res.valor) === cents(b.res.valor);
+    }
     good.forEach(function (e) {
       var k = e.res.chave;
       if (seenChave[k]) {
+        if (seenChave[k].baseId === e.baseId && mesmaNota(seenChave[k], e)) {
+          iguaisPorChave++;
+          duplicadasIguais.push(e);
+        }
         alerts.push({
           type: 'repetida', id: e.baseId, file: e.fileName,
-          text: (seenChave[k].baseId === e.baseId
+          text: (seenChave[k].baseId === e.baseId && mesmaNota(seenChave[k], e)
             ? 'Mesmo ID e mesmas informações de nota (NF ' + e.res.nf + ', mesma chave de acesso) nos arquivos "' + seenChave[k].fileName + '" e "' + e.fileName + '". Foi mantida só uma no demonstrativo (não renomeei para -1/-2 porque é a mesma nota). Confira se não era para ser outra nota.'
             : 'A NF ' + e.res.nf + ' já foi adicionada com o ID ' + seenChave[k].baseId + ' (mesma chave de acesso). Esta repetição foi ignorada para não duplicar o valor.')
         });
@@ -232,15 +243,16 @@
           text: 'O nome ' + base + ' apareceu em ' + g.length + ' notas (NF ' + g.map(function (e) { return e.res.nf; }).join(', ') +
             '). A 1ª manteve o nome ' + base + ' e as demais ficaram como: ' + changes.join(', ') + '.'
         });
-        // repetido com as MESMAS informações da 1ª nota? (NF, descrição, quantidade e valor)
+        // Repetido com todas as informações iguais (a chave também precisa ser igual).
         var f = g[0];
         g.slice(1).forEach(function (e, i) {
           var same = [];
           if (String(e.res.nf) === String(f.res.nf)) same.push('mesma NF (' + e.res.nf + ')');
           if (norm(e.res.item) === norm(f.res.item)) same.push('mesma descrição');
+          if (String(e.res.chave) === String(f.res.chave)) same.push('mesma chave de acesso');
           if (Number(e.res.qtd) === Number(f.res.qtd)) same.push('mesma quantidade');
           if (cents(e.res.valor) === cents(f.res.valor)) same.push('mesmo valor');
-          if (same.length === 4) {
+          if (same.length === 5) {
             alerts.push({
               type: 'igual', id: base + '-' + (i + 1),
               text: 'Nota repetida com as MESMAS informações da nota ' + base + ': ' + same.join(', ') +
@@ -254,7 +266,13 @@
     var totalCents = rows.reduce(function (n, r) { return n + cents(r.valor); }, 0);
     var rank = { erro: 0, repetida: 1, igual: 2, duplicado: 3, atencao: 4 };
     alerts.sort(function (a, b) { return rank[a.type] - rank[b.type]; });
-    return { rows: rows, alerts: alerts, stats: { notas: rows.length, total: totalCents / 100, renomeados: renamed, problemas: alerts.filter(function (a) { return a.type === 'erro' || a.type === 'repetida' || a.type === 'igual'; }).length } };
+    return { rows: rows, allValid: good, duplicadasIguais: duplicadasIguais, alerts: alerts, stats: {
+      notas: rows.length,
+      total: totalCents / 100,
+      renomeados: renamed,
+      repetidosIguais: iguaisPorChave + alerts.filter(function (a) { return a.type === 'igual'; }).length,
+      problemas: alerts.filter(function (a) { return a.type === 'erro' || a.type === 'repetida' || a.type === 'igual'; }).length
+    } };
   }
 
   /* ------------------------------------------------------------------ */
@@ -472,6 +490,8 @@
     $('demo-stat-notas').textContent = a.stats.notas;
     $('demo-stat-total').textContent = formatBRL(a.stats.total);
     $('demo-stat-ren').textContent = a.stats.renomeados;
+    $('demo-stat-igual').textContent = a.stats.repetidosIguais;
+    $('demo-stat-igual-card').classList.toggle('demo-stat-bad', a.stats.repetidosIguais > 0);
     $('demo-stat-prob').textContent = a.stats.problemas;
     $('demo-stat-prob').parentElement.classList.toggle('demo-stat-bad', a.stats.problemas > 0);
 
@@ -497,7 +517,18 @@
     var dis = a.rows.length === 0;
     $('demo-btn-xlsx').disabled = dis; $('demo-btn-pdf').disabled = dis;
     $('demo-btn-notas').disabled = dis;
-    $('demo-btn-notas').textContent = '⬇ BAIXAR AS ' + a.rows.length + ' NOTAS';
+    $('demo-btn-notas-todas').disabled = !a.allValid.length;
+    $('demo-btn-notas-todas').textContent = '⬇ BAIXAR TODAS AS ' + a.allValid.length + ' NOTAS';
+    $('demo-btn-notas').textContent = '⬇ BAIXAR SEM DUPLICADAS IGUAIS (' + a.rows.length + ')';
+    $('demo-btn-agrupar').disabled = !a.rows.length;
+    $('demo-btn-agrupar').textContent = '⬇ AGRUPAR TODAS AS ' + a.rows.length + ' NOTAS';
+    var temDuplicadas = a.duplicadasIguais.length > 0;
+    $('demo-btn-notas-duplicadas').classList.toggle('hidden', !temDuplicadas);
+    $('demo-btn-notas-duplicadas').disabled = !temDuplicadas;
+    $('demo-btn-notas-duplicadas').textContent = '⬇ BAIXAR NOTAS DUPLICADAS IGUAIS (' + a.duplicadasIguais.length + ')';
+    $('demo-btn-agrupar-duplicadas').classList.toggle('hidden', !temDuplicadas);
+    $('demo-btn-agrupar-duplicadas').disabled = !temDuplicadas;
+    $('demo-btn-agrupar-duplicadas').textContent = '⬇ AGRUPAR NOTAS DUPLICADAS IGUAIS (' + a.duplicadasIguais.length + ')';
   }
   var current = { rows: [], alerts: [], stats: {} };
 
@@ -526,7 +557,7 @@
     download(doc.output('blob'), fileBase() + '.pdf');
   }
 
-  // ZIP só com as notas que entraram no demonstrativo, nomeadas com o ID final (-1, -2...)
+  // ZIP somente com as notas do demonstrativo, sem duplicatas idênticas.
   async function exportNotas() {
     if (!current.rows.length) return;
     if (!root.JSZip) { alert('Biblioteca de ZIP não carregou. Verifique a internet e recarregue (F5).'); return; }
@@ -538,7 +569,96 @@
     });
     var blob = await zip.generateAsync({ type: 'blob' });
     var d = ($('demo-driver').value || '').trim().replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ');
-    download(blob, 'NOTAS FISCAIS' + (d ? ' - ' + d : '') + '.zip');
+    download(blob, 'NOTAS FISCAIS - SEM DUPLICADAS IGUAIS' + (d ? ' - ' + d : '') + '.zip');
+  }
+
+  // ZIP com todas as notas reconhecidas, inclusive duplicatas idênticas.
+  // As cópias idênticas recebem (1), (2)... apenas dentro do ZIP para não sobrescrever arquivos.
+  async function exportTodasNotas() {
+    if (!current.allValid || !current.allValid.length) return;
+    if (!root.JSZip) { alert('Biblioteca de ZIP não carregou. Verifique a internet e recarregue (F5).'); return; }
+    var zip = new root.JSZip(), byKey = {}, rowByKey = {}, usedNames = {}, duplicateNumbers = {};
+    entries.forEach(function (e) { byKey[e.key] = e; });
+    current.rows.forEach(function (r) { rowByKey[r.key] = r.id; usedNames[r.id.toUpperCase()] = true; });
+    current.allValid.forEach(function (e) {
+      var id = rowByKey[e.key];
+      if (!id) {
+        var base = e.baseId, n = duplicateNumbers[base] || 0;
+        do { n++; id = base + ' (' + n + ')'; } while (usedNames[id.toUpperCase()]);
+        duplicateNumbers[base] = n;
+        usedNames[id.toUpperCase()] = true;
+      }
+      var file = byKey[e.key] && byKey[e.key].file;
+      if (file) zip.file(id.replace(/[\\/:*?"<>|]+/g, '_') + '.pdf', file);
+    });
+    var blob = await zip.generateAsync({ type: 'blob' });
+    var d = ($('demo-driver').value || '').trim().replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ');
+    download(blob, 'NOTAS FISCAIS - TODAS' + (d ? ' - ' + d : '') + '.zip');
+  }
+
+  async function exportNotasDuplicadas() {
+    if (!current.duplicadasIguais || !current.duplicadasIguais.length) return;
+    if (!root.JSZip) { alert('Biblioteca de ZIP não carregou. Verifique a internet e recarregue a página (F5).'); return; }
+    var zip = new root.JSZip(), used = {};
+    current.duplicadasIguais.forEach(function (e, i) {
+      var base = e.baseId, n = i + 1, id = base + ' (' + n + ')';
+      while (used[id.toUpperCase()]) { n++; id = base + ' (' + n + ')'; }
+      used[id.toUpperCase()] = true;
+      if (e.file) zip.file(id.replace(/[\\/:*?"<>|]+/g, '_') + '.pdf', e.file);
+    });
+    var blob = await zip.generateAsync({ type: 'blob' });
+    var d = ($('demo-driver').value || '').trim().replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ');
+    download(blob, 'NOTAS FISCAIS DUPLICADAS IGUAIS' + (d ? ' - ' + d : '') + '.zip');
+  }
+
+  // Agrupa os PDFs do próprio demonstrativo em um único arquivo, como na aba AGRUPAR PDF.
+  async function exportAgrupado() {
+    if (!current.allValid || !current.allValid.length) return;
+    if (!root.PDFLib) { alert('A biblioteca de PDF não carregou. Verifique a internet e recarregue a página (F5).'); return; }
+    var selected = current.rows.map(function (r) {
+      return entries.find(function (e) { return e.key === r.key; });
+    }).filter(Boolean);
+    if (!selected.length) return;
+
+    var btn = $('demo-btn-agrupar'), old = btn.textContent;
+    try {
+      btn.disabled = true; btn.textContent = 'Juntando…';
+      var out = await root.PDFLib.PDFDocument.create();
+      for (var i = 0; i < selected.length; i++) {
+        var src = await root.PDFLib.PDFDocument.load(await selected[i].file.arrayBuffer(), { ignoreEncryption: true });
+        var pages = await out.copyPages(src, src.getPageIndices());
+        pages.forEach(function (page) { out.addPage(page); });
+      }
+      var bytes = await out.save();
+      var d = ($('demo-driver').value || '').trim().replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ');
+      download(new Blob([bytes], { type: 'application/pdf' }), 'NOTAS FISCAIS AGRUPADAS - TODAS AS ' + selected.length + ' NOTAS' + (d ? ' - ' + d : '') + '.pdf');
+    } catch (e) {
+      alert('Não consegui agrupar os PDFs: ' + (e && e.message ? e.message : e));
+    } finally {
+      btn.disabled = false; btn.textContent = old; render();
+    }
+  }
+
+  async function exportAgrupadoDuplicadas() {
+    if (!current.duplicadasIguais || !current.duplicadasIguais.length) return;
+    if (!root.PDFLib) { alert('A biblioteca de PDF não carregou. Verifique a internet e recarregue a página (F5).'); return; }
+    var btn = $('demo-btn-agrupar-duplicadas'), old = btn.textContent;
+    try {
+      btn.disabled = true; btn.textContent = 'Juntando…';
+      var out = await root.PDFLib.PDFDocument.create();
+      for (var i = 0; i < current.duplicadasIguais.length; i++) {
+        var src = await root.PDFLib.PDFDocument.load(await current.duplicadasIguais[i].file.arrayBuffer(), { ignoreEncryption: true });
+        var pages = await out.copyPages(src, src.getPageIndices());
+        pages.forEach(function (page) { out.addPage(page); });
+      }
+      var bytes = await out.save();
+      var d = ($('demo-driver').value || '').trim().replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ');
+      download(new Blob([bytes], { type: 'application/pdf' }), 'NOTAS FISCAIS AGRUPADAS - COM NOTAS DUPLICADAS' + (d ? ' - ' + d : '') + '.pdf');
+    } catch (e) {
+      alert('Não consegui agrupar as notas duplicadas: ' + (e && e.message ? e.message : e));
+    } finally {
+      btn.disabled = false; btn.textContent = old; render();
+    }
   }
 
   function init() {
@@ -552,7 +672,11 @@
     drop.addEventListener('drop', function (e) { if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files); });
     $('demo-btn-xlsx').addEventListener('click', exportXlsx);
     $('demo-btn-pdf').addEventListener('click', exportPdf);
+    $('demo-btn-notas-todas').addEventListener('click', exportTodasNotas);
     $('demo-btn-notas').addEventListener('click', exportNotas);
+    $('demo-btn-agrupar').addEventListener('click', exportAgrupado);
+    $('demo-btn-notas-duplicadas').addEventListener('click', exportNotasDuplicadas);
+    $('demo-btn-agrupar-duplicadas').addEventListener('click', exportAgrupadoDuplicadas);
     // ---- Desfazer (Ctrl+Z) para remoção de nota (✕) e "Limpar tudo" ----
     var undoStack = [], toastTimer = null;
     var toast = document.createElement('div');

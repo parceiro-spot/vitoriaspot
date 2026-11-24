@@ -529,12 +529,13 @@ Estimativa do Prejuízo: VALOR DO SINISTRO.</p>
         <div id="demo-progress" class="demo-progress hidden"></div>
 
         <div id="demo-results" class="hidden">
-          <div class="demo-dash">
-            <div class="demo-stat"><span id="demo-stat-notas">0</span><label>Notas no demonstrativo</label></div>
-            <div class="demo-stat"><span id="demo-stat-total">R$ 0,00</span><label>Valor total</label></div>
-            <div class="demo-stat"><span id="demo-stat-ren">0</span><label>IDs repetidos renomeados</label></div>
-            <div class="demo-stat"><span id="demo-stat-prob">0</span><label>Notas com problema (fora)</label></div>
-          </div>
+	          <div class="demo-dash">
+	            <div class="demo-stat"><span id="demo-stat-notas">0</span><label>Notas no demonstrativo</label></div>
+	            <div class="demo-stat"><span id="demo-stat-total">R$ 0,00</span><label>Valor total</label></div>
+	            <div class="demo-stat"><span id="demo-stat-ren">0</span><label>IDs repetidos renomeados</label></div>
+	            <div class="demo-stat" id="demo-stat-igual-card"><span id="demo-stat-igual">0</span><label>IDs repetidos com mesmas informações</label></div>
+	            <div class="demo-stat"><span id="demo-stat-prob">0</span><label>Notas com problema (fora)</label></div>
+	          </div>
 
           <div id="demo-obs" class="demo-obs"></div>
 
@@ -542,10 +543,14 @@ Estimativa do Prejuízo: VALOR DO SINISTRO.</p>
             <label class="demo-driver">Nome do motorista (opcional — vai no nome do arquivo)
               <input type="text" id="demo-driver" placeholder="Ex: Davi Alison Jacinto Batista">
             </label>
-            <button type="button" id="demo-btn-xlsx" class="editor-btn primary">⬇ Baixar XLSX</button>
-            <button type="button" id="demo-btn-pdf" class="editor-btn primary">⬇ Baixar PDF</button>
-            <button type="button" id="demo-btn-notas" class="editor-btn primary">⬇ BAIXAR AS 0 NOTAS</button>
-            <button type="button" id="demo-btn-clear" class="editor-btn">🗑 Limpar tudo</button>
+	            <button type="button" id="demo-btn-xlsx" class="editor-btn primary">⬇ Baixar XLSX</button>
+	            <button type="button" id="demo-btn-pdf" class="editor-btn primary">⬇ Baixar PDF</button>
+	            <button type="button" id="demo-btn-notas-todas" class="editor-btn primary">⬇ BAIXAR TODAS AS 0 NOTAS</button>
+	            <button type="button" id="demo-btn-notas" class="editor-btn primary">⬇ BAIXAR SEM DUPLICADAS IGUAIS (0)</button>
+	            <button type="button" id="demo-btn-agrupar" class="editor-btn primary">⬇ AGRUPAR TODAS AS NOTAS</button>
+	            <button type="button" id="demo-btn-notas-duplicadas" class="editor-btn danger hidden">⬇ BAIXAR NOTAS DUPLICADAS IGUAIS (0)</button>
+	            <button type="button" id="demo-btn-agrupar-duplicadas" class="editor-btn danger hidden">⬇ AGRUPAR NOTAS DUPLICADAS IGUAIS (0)</button>
+	            <button type="button" id="demo-btn-clear" class="editor-btn">🗑 Limpar tudo</button>
           </div>
 
           <div class="demo-table-wrap">
