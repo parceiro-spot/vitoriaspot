@@ -12,3 +12,5 @@
 
 /* Ficha WhatsApp estruturada */
 .registro-help{font-size:10px;color:#6d786a;margin:-4px 0 9px}.whatsapp-note-input{width:100%;font:500 12px/1.5 Montserrat,sans-serif;border:1px solid #dce5d8;border-radius:9px;padding:10px;resize:vertical}.registro-form-actions.compact{justify-content:flex-start;margin-top:8px;padding-top:0;border-top:0}
+
+.auto-fill-box{background:#f4f9ee;border:1px dashed #8bc53f;border-radius:12px;padding:6px 14px 12px;margin-bottom:14px}.auto-fill-box .registro-section-title{margin-top:8px}.helper-question{display:flex;align-items:center;gap:12px;margin:14px 0 6px;padding:10px 12px;background:#f7f9f5;border:1px solid #dce5d8;border-radius:10px}.helper-question select{font:600 13px Montserrat,sans-serif;padding:7px 12px;border:1px solid #cfd8cb;border-radius:8px;background:#fff}#sr-helper-fields.hidden{display:none}

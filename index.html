@@ -412,6 +412,12 @@ que os pacotes se tornem LOST.</p>
           </aside>
           <main class="registro-form-card">
             <div class="registro-form-head"><div><span class="registro-kicker">FICHA DO CASO</span><h4 id="sr-form-title">Novo sinistro</h4></div><span id="sr-save-state" class="save-state"></span></div>
+            <div class="auto-fill-box">
+              <div class="registro-section-title">Preenchimento automático</div>
+              <p class="registro-help">Cole aqui a ficha recebida no WhatsApp e clique em <strong>Preencher campos automaticamente</strong>. Todos os campos abaixo continuam editáveis manualmente.</p>
+              <textarea id="sr-whatsapp-note" class="whatsapp-note-input" rows="12" placeholder="ficha Douglas ferreira da silva\n\n🗒️ Operação: SRJ2\n🗓️ Data: 24/11/2026\n👤 Motorista: Douglas ferreira da silva\n..."></textarea>
+              <div class="registro-form-actions compact"><button type="button" class="editor-btn primary" id="sr-format-whatsapp">Preencher campos automaticamente</button><span id="sr-whatsapp-state" class="save-state"></span></div>
+            </div>
             <div class="registro-section-title">Identificação e ocorrência</div>
             <div class="registro-grid">
               <label>Nome interno / Drive<input id="sr-drive-name" placeholder="ROUBO SSP45"></label>
@@ -439,13 +445,30 @@ que os pacotes se tornem LOST.</p>
               <label>Estimativa do prejuízo (R$)<input id="sr-loss" placeholder="23.493,13"></label>
               <label>Quantidade de NFs<input id="sr-invoices" type="number" min="0" value="0"></label>
             </div>
-            <div class="registro-section-title">Dados pessoais</div>
+            <div class="registro-section-title">Dados Pessoais do Motorista</div>
             <div class="registro-grid">
               <label>Motorista<input id="sr-driver" placeholder="Nome completo"></label>
               <label>ID do motorista<input id="sr-driver-id" placeholder="4782559"></label>
               <label>CPF<input id="sr-cpf" placeholder="000.000.000-00"></label>
               <label>CNH<input id="sr-cnh" placeholder="Número / categoria"></label>
               <label>Telefone<input id="sr-phone" placeholder="+55 21 99970-0513"></label>
+            </div>
+            <div class="helper-question">
+              <label for="sr-has-helper"><strong>Possui ajudante?</strong></label>
+              <select id="sr-has-helper"><option value="nao">Não</option><option value="sim">Sim</option></select>
+            </div>
+            <div id="sr-helper-fields" class="hidden">
+              <div class="registro-section-title">Dados Pessoais do Ajudante</div>
+              <div class="registro-grid">
+                <label>Ajudante<input id="sr-helper-name" placeholder="Nome completo"></label>
+                <label>CPF<input id="sr-helper-cpf" placeholder="000.000.000-00"></label>
+                <label>RG<input id="sr-helper-rg" placeholder="RG"></label>
+                <label>Telefone<input id="sr-helper-phone" placeholder="+55 21 99970-0513"></label>
+                <label class="wide">Observação<input id="sr-helper-note"></label>
+              </div>
+            </div>
+            <div class="registro-section-title">Veículo</div>
+            <div class="registro-grid">
               <label>Placa<input id="sr-plate" placeholder="ABC1D23"></label>
               <label>Tipo de veículo<select id="sr-vehicle"><option value="VUC">VUC</option><option value="KWID">KWID</option><option value="VAN">VAN</option><option value="3/4">3/4</option><option value="TOCO">TOCO</option><option value="TRUCK">TRUCK</option><option value="CARRETA">CARRETA</option><option value="MOTO">MOTO</option><option value="OUTRO">OUTRO</option></select></label>
               <label>Modelo / observação<input id="sr-model" placeholder="Modelo do veículo"></label>
@@ -458,16 +481,7 @@ que os pacotes se tornem LOST.</p>
               <label>Resultado<select id="sr-insurance-status"><option value="PENDENTE">Pendente</option><option value="ACEITO">Aceito</option><option value="RECUSADO">Recusado</option><option value="NÃO ACIONADO">Não acionado</option></select></label>
               <label class="wide">Motivo / observação do seguro<textarea id="sr-insurance-reason" rows="2" placeholder="Ex.: seguradora recusou por documentação incompleta..."></textarea></label>
             </div>
-            <div class="registro-section-title">Ajudante</div>
-            <label class="check-pill"><input id="sr-has-helper" type="checkbox"> Este caso tem ajudante</label>
-            <div id="sr-helper-fields" class="registro-grid hidden">
-              <label>Nome do ajudante<input id="sr-helper-name"></label><label>CPF / RG<input id="sr-helper-doc"></label><label>Observação<input id="sr-helper-note"></label>
-            </div>
-            <div class="registro-section-title">Ficha preenchida via WhatsApp</div>
-            <p class="registro-help">Cole a ficha bruta recebida no WhatsApp. Ela será apresentada no portfólio como uma ficha organizada, com os campos separados e o relato em destaque.</p>
-            <textarea id="sr-whatsapp-note" class="whatsapp-note-input" rows="12" placeholder="ficha Douglas ferreira da silva\n\n🗒️ Operação: SRJ2\n🗓️ Data: 24/11/2026\n👤 Motorista: Douglas ferreira da silva\n..."></textarea>
-            <div class="registro-form-actions compact"><button type="button" class="editor-btn" id="sr-format-whatsapp">Formatar ficha no portfólio</button><span id="sr-whatsapp-state" class="save-state"></span></div>
-            <div class="registro-section-title">Documentos do caso</div>
+            <div class="registro-section-title">Documentos para Seguro</div>
             <div class="doc-config-bar"><span>Os nomes abaixo são editáveis. Em <strong>Outros documentos</strong>, você também pode criar uma categoria e definir o nome antes de anexar o arquivo.</span><div><button type="button" class="editor-btn" id="sr-add-other-doc">+ Outro documento com nome</button><button type="button" class="editor-btn" id="sr-add-doc">+ Adicionar documento</button></div></div>
             <div id="sr-doc-list" class="doc-checklist"></div>
             <div class="bulk-drop" id="sr-bulk-drop"><strong>Solte vários arquivos aqui</strong><span>O sistema tenta direcionar pelo nome do arquivo. Se não encontrar, deixe em “Outros”.</span><input id="sr-bulk-files" type="file" multiple hidden></div>
@@ -888,6 +902,8 @@ Estimativa do Prejuízo: VALOR DO SINISTRO.</p>
   <script src="script.js"></script>
   <script src="demonstrativo.js"></script>
   <script src="pdftools.js"></script>
+  <script src="vehicle-art.js"></script>
+  <script src="mascote.js"></script>
   <script src="sinistro-registro.js"></script>
 </body>
 </html>

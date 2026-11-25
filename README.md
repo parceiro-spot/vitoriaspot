@@ -80,3 +80,9 @@ Abra `index.html` diretamente ou publique os três arquivos juntos. O armazename
 - A imagem do veículo não usa mais foto de caminhão da internet.
 - A ficha e o portfólio exibem uma ilustração vetorial limpa, com fundo branco, conforme o tipo selecionado: VUC, VAN, 3/4, TOCO, TRUCK, CARRETA ou MOTO.
 - O portfólio mantém a foto do motorista pela CNH separada da ilustração profissional do veículo.
+
+### Novo design do portfólio (ficha.html)
+- Cabeçalho mantido; no lugar da foto da CNH agora aparece sempre a imagem profissional do **veículo** escolhido (VUC, VAN, 3/4, TOCO, TRUCK, CARRETA, MOTO, carro). Se uma foto real for anexada na ficha, ela substitui a ilustração.
+- Faixa azul com os números principais e o mascote Parceiro Spot (`mascote.js`).
+- Seções numeradas: Dados pessoais · Ficha Rota/Motorista · Ficha Sinistro · Documentos e seguro (✓/✕) · Acesso aos documentos (links). Campos vazios e ajudante (quando não há) não aparecem.
+- Ilustrações em `vehicle-art.js`. Para usar fotos reais, basta substituir a função `SpotVehicleArt`.
