@@ -26,6 +26,7 @@
   function formatChave(d) { return String(d).replace(/(\d{4})(?=\d)/g, '$1 '); }
   function formatNF(n) { return String(n).padStart(9, '0').replace(/(\d{3})(\d{3})(\d{3})/, '$1.$2.$3'); }
   function formatBRL(n) {
+    if (n == null || n === '' || isNaN(Number(n))) return '';
     return 'R$ ' + Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
@@ -83,6 +84,16 @@
     var total = pages.reduce(function (n, p) { return n + p.items.length; }, 0);
     if (!total) { out.errors.push('PDF sem texto selecionável (imagem/escaneado)'); return out; }
 
+    // 0) Declaração de conteúdo (DC-e / DACE): documento de transporte SEM valor -> ignorado em silêncio
+    var textos = pages[0].items.map(function (i) { return norm(i.s); });
+    var temValorNota = textos.some(function (t) { return /VALOR TOTAL DA NOTA/.test(t); });
+    var ehDCe = textos.some(function (t) { return /^DECLARACAO$|DECLARACAO AUXILIAR DE CONTEUDO|^DACE\b|CHAVE DE ACESSO DA DC-?E/.test(t); });
+    if (ehDCe && !temValorNota) {
+      out.ignored = true; out.ignoreReason = 'declaração de conteúdo (DC-e) sem valor';
+      out.docTitle = pages[0].items.slice().sort(function (a, b) { return b.y - a.y || a.x - b.x; })[0].s.trim();
+      return out;
+    }
+
     // 1) chave de acesso + número da NF
     var chave = findChave(pages);
     if (!chave) { out.errors.push('chave de acesso não encontrada (não parece um DANFE padrão)'); return out; }
@@ -92,69 +103,88 @@
 
     var items = pages[0].items, pageW = pages[0].width || 595;
     var find = function (re) { return items.filter(function (i) { return re.test(norm(i.s)); }); };
+    var review = out.review = [];          // motivos pelos quais a nota precisa de revisão (layout estranho)
 
     // 2) VALOR TOTAL DA NOTA  (valor logo abaixo do rótulo)
+    out.valor = null;
     var lbl = find(/VALOR TOTAL DA NOTA/)[0];
-    if (!lbl) { out.errors.push('campo "VALOR TOTAL DA NOTA" não encontrado (layout diferente)'); return out; }
-    var vals = items.filter(function (i) {
-      return MONEY.test(i.s.trim()) && i.y < lbl.y && (lbl.y - i.y) <= 30 &&
-        i.x >= lbl.x - 3 && i.x <= pageW;
-    }).sort(function (a, b) { return (lbl.y - a.y) - (lbl.y - b.y); });
-    if (!vals.length) { out.errors.push('valor da nota não encontrado abaixo de "VALOR TOTAL DA NOTA"'); return out; }
-    out.valor = toNum(vals[0].s.trim());
-    if (!(out.valor > 0)) { out.errors.push('valor total da nota zerado/inválido'); return out; }
+    if (!lbl) review.push('campo "VALOR TOTAL DA NOTA" não encontrado (layout diferente)');
+    else {
+      var vals = items.filter(function (i) {
+        return MONEY.test(i.s.trim()) && i.y < lbl.y && (lbl.y - i.y) <= 30 && i.x >= lbl.x - 3 && i.x <= pageW;
+      }).sort(function (a, b) { return (lbl.y - a.y) - (lbl.y - b.y); });
+      if (!vals.length) review.push('valor da nota não encontrado abaixo de "VALOR TOTAL DA NOTA"');
+      else {
+        var v = toNum(vals[0].s.trim());
+        if (v > 0) out.valor = v; else review.push('valor total da nota zerado/inválido');
+      }
+    }
 
-    // 3) tabela de produtos
+    // 3) itens
+    var itens = readItens(items, find, review);
+    out.itens = itens || [];
+    out.item = itens ? itens[0].desc : '';
+    out.qtd = 1; // quantidade padrão do demonstrativo
+    if (itens && itens.length > 1) out.warnings.push('nota com ' + itens.length + ' itens — foi copiada só a descrição do 1º item (quantidade 1)');
+    if (pages.length > 1) out.warnings.push('nota com ' + pages.length + ' páginas — só a 1ª página foi lida para os itens; confira');
+    if (review.length) { out.partial = true; return out; }   // tem chave de NF-e, mas o layout não foi lido por completo
+    out.ok = true;
+    return out;
+  }
+
+  // Lê as descrições dos itens (2 layouts conhecidos). Em caso de dúvida devolve null e registra o motivo em review.
+  function readItens(items, find, review) {
     var hDesc = find(/^DESCRI.*PRODUTO/)[0];
+    var hCstCfop = find(/^CST \/ CFOP/)[0];
+    var fail = function (m) { review.push(m); return null; };
+
+    if (hDesc && hCstCfop) {                       // layout novo (IBS/CBS): cada item é um bloco que começa em "CÓD:"
+      var issqnB = find(/CALCULO DO ISSQN|^DADOS ADICIONAIS/).filter(function (i) { return i.y < hDesc.y; }).sort(function (x, y) { return y.y - x.y; })[0];
+      if (!issqnB) return fail('tabela de produtos fora do padrão (rodapé não reconhecido)');
+      var yTopB = hDesc.y - 4, xMinB = hDesc.x - 3, xMaxB = hCstCfop.x - 3;
+      var areaB = items.filter(function (i) { return i.y < yTopB && i.y > issqnB.y && i.x >= xMinB && i.x < xMaxB; });
+      var ancB = areaB.filter(function (i) { return /^COD\s*:/.test(norm(i.s)); }).sort(function (a, b) { return b.y - a.y; });
+      if (!ancB.length) return fail('nenhum item encontrado na nota');
+      var descsB = ancB.map(function (a, k) {
+        var yMax = a.y + 3, yMin = k + 1 < ancB.length ? ancB[k + 1].y + 3 : -Infinity;
+        var bloco = areaB.filter(function (i) { return i.y <= yMax && i.y > yMin; });
+        return groupLines(bloco).map(function (l) { return l.text.replace(/\s+/g, ' ').trim(); }).filter(function (t) {
+          var n = norm(t);
+          return t && !/^COD\s*:/.test(n) && !/^NCM\s*:/.test(n) && !/^(REFERENCIA|REF)\s*:/.test(n) &&
+            !/^(EAN|GTIN|SKU)\b/.test(n) && !/^[A-Z]_\d{6,}$/.test(n);
+        }).join(' ').trim();
+      });
+      for (var q = 0; q < descsB.length; q++) if (!descsB[q]) return fail('descrição do item ' + (q + 1) + ' não encontrada');
+      return descsB.map(function (d) { return { desc: d, qtd: 1 }; });
+    }
+
+    // layout clássico: colunas CÓDIGO | DESCRIÇÃO | NCM/SH | CST | CFOP | UN | QTD ...
     var hNcm = find(/^NCM/)[0];
     var hQtd = find(/^(QTD|QUANT)/).filter(function (i) { return hNcm && i.y < hNcm.y + 6 && i.y > hNcm.y - 6; })[0];
     var hCod = find(/^CODIGO$/)[0];
     var issqn = find(/CALCULO DO ISSQN/)[0] || find(/^DADOS ADICIONAIS/)[0];
-    if (!hDesc || !hNcm || !hQtd || !issqn) {
-      out.errors.push('tabela de produtos fora do padrão (cabeçalho não reconhecido)'); return out;
-    }
+    if (!hDesc || !hNcm || !hQtd || !issqn) return fail('tabela de produtos fora do padrão (cabeçalho não reconhecido)');
     var yTop = Math.min(hDesc.y, hNcm.y) - 6, yBottom = issqn.y;
     var inArea = items.filter(function (i) { return i.y < yTop && i.y > yBottom; });
-
     var anchors = inArea.filter(function (i) {
       return /^\d{8}$/.test(i.s.trim()) && i.x >= hNcm.x - 25 && i.x <= hNcm.x + hNcm.w + 25;
     }).sort(function (a, b) { return b.y - a.y; });
-    if (!anchors.length) { out.errors.push('nenhum item encontrado na nota'); return out; }
-
+    if (!anchors.length) return fail('nenhum item encontrado na nota');
     var descMin = hCod ? ((hCod.x + hCod.w) + hDesc.x) / 2 : hDesc.x - 8;
     var descMax = hNcm.x - 4;
     var descItems = inArea.filter(function (i) { return i.x >= descMin && i.x < descMax; });
-    var qtdCenter = hQtd.x + hQtd.w / 2;
-
-    var rows = anchors.map(function () { return { parts: [], qtd: null }; });
+    var rows = anchors.map(function () { return { parts: [] }; });
     descItems.forEach(function (it) {
       var best = 0, bd = Infinity;
       anchors.forEach(function (a, k) { var d = Math.abs(a.y - it.y); if (d < bd) { bd = d; best = k; } });
       rows[best].parts.push(it);
     });
-    anchors.forEach(function (a, k) {
-      var tokens = inArea.filter(function (i) { return Math.abs(i.y - a.y) <= 3 && i.x > a.x + a.w; });
-      var numeric = tokens.filter(function (i) { return /^\d+(?:[.,]\d+)*$/.test(i.s.trim()); });
-      var best = null, bd = Infinity;
-      numeric.forEach(function (t) {
-        var d = Math.abs((t.x + t.w / 2) - qtdCenter);
-        if (d < bd) { bd = d; best = t; }
-      });
-      if (best) rows[k].qtd = toNum(best.s.trim());
-      rows[k].parts.sort(function (a, b) { return b.y - a.y || a.x - b.x; });
-      rows[k].desc = rows[k].parts.map(function (p) { return p.s; }).join(' ').replace(/\s+/g, ' ').trim();
-    });
     for (var r = 0; r < rows.length; r++) {
-      if (!rows[r].desc) { out.errors.push('descrição do item ' + (r + 1) + ' não encontrada'); return out; }
+      rows[r].parts.sort(function (a, b) { return b.y - a.y || a.x - b.x; });
+      rows[r].desc = rows[r].parts.map(function (p) { return p.s; }).join(' ').replace(/\s+/g, ' ').trim();
+      if (!rows[r].desc) return fail('descrição do item ' + (r + 1) + ' não encontrada');
     }
-
-    out.itens = rows.map(function (x) { return { desc: x.desc, qtd: x.qtd }; });
-    out.item = out.itens[0].desc; // nota com vários itens: copia sempre a descrição do 1º item
-    out.qtd = 1; // quantidade padrão do demonstrativo
-    if (out.itens.length > 1) out.warnings.push('nota com ' + out.itens.length + ' itens — foi copiada só a descrição do 1º item (quantidade 1)');
-    if (pages.length > 1) out.warnings.push('nota com ' + pages.length + ' páginas — só a 1ª página foi lida para os itens; confira');
-    out.ok = true;
-    return out;
+    return rows.map(function (x) { return { desc: x.desc, qtd: 1 }; });
   }
 
   /* ------------------------------------------------------------------ */
@@ -171,15 +201,56 @@
   /*  Monta o demonstrativo + observações                                */
   /*  entries = [{key,fileName,baseId,copyIndex,seq,res}]                */
   /* ------------------------------------------------------------------ */
+  function parseMoney(t) {
+    var x = String(t || '').replace(/[^\d.,]/g, '');
+    if (!x) return null;
+    if (x.indexOf(',') >= 0) x = x.replace(/\./g, '').replace(',', '.');
+    var n = Number(x);
+    return n > 0 ? n : null;
+  }
+  function detRow(e, papel, id) {
+    return { papel: papel, id: id, file: e.fileName, nf: e.res.nf, chave: formatChave(e.res.chave), item: e.res.item, valor: e.res.valor };
+  }
   function assemble(entries) {
     var alerts = [], good = [];
+    var daces = [];
     entries.slice().sort(function (a, b) { return a.seq - b.seq; }).forEach(function (e) {
+      if (e.res && e.res.ignored) { daces.push(e); return; }     // DACE resumida: de fato não entra (aviso único no final)
+      if (e.res && e.res.partial) {
+        // chave de NF-e válida, mas o layout não foi lido por completo -> vem INCLUÍDA por padrão, com opção de incluir / não incluir
+        var ov = e.override || {};
+        var item = (ov.item != null && ov.item !== '') ? ov.item : (e.res.item || '');
+        var valor = ov.valor != null ? ov.valor : e.res.valor;
+        var inc = e.include !== false;
+        var falta = [];
+        if (!item) falta.push('descrição');
+        if (valor == null) falta.push('valor');
+        alerts.push({
+          type: 'revisar', id: e.baseId, file: e.fileName, key: e.key, include: inc, missing: { item: !item, valor: valor == null },
+          item: item, valor: valor,
+          details: { kind: 'revisar', title: 'Nota para revisar — ' + e.baseId, rows: [{ papel: inc ? 'Incluída (padrão)' : 'Não incluída', id: e.baseId, file: e.fileName, nf: e.res.nf, chave: formatChave(e.res.chave), item: item, valor: valor, motivo: e.res.review.join('; ') }] },
+          text: 'Layout diferente do padrão — conferir. ' + e.res.review.join('; ') + '.' + (falta.length ? ' Faltou ler: ' + falta.join(' e ') + ' (preencha abaixo).' : ' Os dados foram lidos, mas confira.')
+        });
+        if (inc) {
+          var res2 = Object.assign({}, e.res, { item: item, valor: valor, ok: true });
+          good.push(Object.assign({}, e, { res: res2 }));
+        }
+        return;
+      }
       if (e.res && e.res.ok) good.push(e);
       else alerts.push({
         type: 'erro', id: e.baseId, file: e.fileName,
+        details: { title: 'Nota não reconhecida — ' + e.baseId, kind: 'erro', rows: [{ papel: 'Não incluída', id: e.baseId, file: e.fileName, motivo: (e.res && e.res.errors && e.res.errors[0]) || 'erro ao ler o arquivo' }] },
         text: 'Nota não reconhecida e NÃO incluída no demonstrativo: ' + ((e.res && e.res.errors && e.res.errors[0]) || 'erro ao ler o arquivo') + '.'
       });
     });
+    if (daces.length) {
+      alerts.push({
+        type: 'dace', id: daces.length + (daces.length === 1 ? ' declaração' : ' declarações'),
+        details: { kind: 'dace', title: 'DACE resumida — declaração auxiliar de conteúdo', rows: daces.map(function (e) { return { papel: 'Não entra', id: e.baseId, file: e.fileName, titulo: e.res.docTitle || '' }; }) },
+        text: 'Declaração de conteúdo — "DACE RESUMIDA - DECLARAÇÃO AUXILIAR DE CONTEÚDO" ou "DECLARAÇÃO" (documento de transporte, sem valor): de fato NÃO entram no demonstrativo, nem nos ZIPs/PDFs agrupados. IDs: ' + daces.map(function (e) { return e.baseId; }).join(', ') + '.'
+      });
+    }
 
     // mesma NF (chave) enviada duas vezes -> ignora a repetição
     var seenChave = {}, unique = [], duplicadasIguais = [], iguaisPorChave = 0;
@@ -199,6 +270,7 @@
         }
         alerts.push({
           type: 'repetida', id: e.baseId, file: e.fileName,
+          details: { kind: 'repetida', title: 'Nota repetida — ' + e.baseId, rows: [detRow(seenChave[k], 'Mantida no demonstrativo', seenChave[k].baseId), detRow(e, 'Ignorada (é a mesma nota)', e.baseId)] },
           text: (seenChave[k].baseId === e.baseId && mesmaNota(seenChave[k], e)
             ? 'Mesmo ID e mesmas informações de nota (NF ' + e.res.nf + ', mesma chave de acesso) nos arquivos "' + seenChave[k].fileName + '" e "' + e.fileName + '". Foi mantida só uma no demonstrativo (não renomeei para -1/-2 porque é a mesma nota). Confira se não era para ser outra nota.'
             : 'A NF ' + e.res.nf + ' já foi adicionada com o ID ' + seenChave[k].baseId + ' (mesma chave de acesso). Esta repetição foi ignorada para não duplicar o valor.')
@@ -218,7 +290,7 @@
     var rows = [], renamed = 0;
     order.forEach(function (base) {
       var g = groups[base].slice().sort(function (a, b) { return a.seq - b.seq; });
-      var n = 0, changes = [];
+      var n = 0, changes = [], ids = [];
       g.forEach(function (e, idx) {
         var id = base, isRen = idx > 0;
         if (idx > 0) {
@@ -226,10 +298,11 @@
           used[id.toUpperCase()] = true; renamed++;
           changes.push(id + ' (NF ' + String(e.res.nf) + ')');
         }
+        ids.push(id);
         rows.push({
           key: e.key, id: id, baseId: base, renamed: isRen,
           chave: formatChave(e.res.chave), nf: e.res.nf, item: e.res.item,
-          qtd: e.res.qtd, valor: e.res.valor, status: 'SINISTRADA', warnings: e.res.warnings.slice()
+          qtd: e.res.qtd, valor: e.res.valor, status: 'SINISTRADA', warnings: e.res.warnings.slice(), incomplete: !e.res.item || e.res.valor == null
         });
         e.res.warnings.forEach(function (w) { alerts.push({ type: 'atencao', id: id, file: e.fileName, text: w.charAt(0).toUpperCase() + w.slice(1) + '.' }); });
         if (!/^\d+(?:_\d+)?(?: \(PARTE \d+\))?$/i.test(base) && idx === 0) {
@@ -240,6 +313,7 @@
       if (g.length > 1) {
         alerts.push({
           type: 'duplicado', id: base,
+          details: { kind: 'duplicado', title: 'ID repetido — ' + base, rows: g.map(function (e, i) { return detRow(e, i === 0 ? 'Mantém o nome original' : 'Renomeada', ids[i]); }) },
           text: 'O nome ' + base + ' apareceu em ' + g.length + ' notas (NF ' + g.map(function (e) { return e.res.nf; }).join(', ') +
             '). A 1ª manteve o nome ' + base + ' e as demais ficaram como: ' + changes.join(', ') + '.'
         });
@@ -255,6 +329,7 @@
           if (same.length === 5) {
             alerts.push({
               type: 'igual', id: base + '-' + (i + 1),
+              details: { kind: 'igual', title: 'Repetida e igual — ' + base, rows: [detRow(f, 'Original', ids[0]), detRow(e, 'Repetida', base + '-' + (i + 1))] },
               text: 'Nota repetida com as MESMAS informações da nota ' + base + ': ' + same.join(', ') +
                 '. Ela foi mantida no demonstrativo como ' + base + '-' + (i + 1) + ' e o valor está sendo somado de novo. Confira se não é a mesma nota enviada duas vezes.'
             });
@@ -264,7 +339,7 @@
     });
 
     var totalCents = rows.reduce(function (n, r) { return n + cents(r.valor); }, 0);
-    var rank = { erro: 0, repetida: 1, igual: 2, duplicado: 3, atencao: 4 };
+    var rank = { erro: 0, revisar: 1, repetida: 2, igual: 3, duplicado: 4, atencao: 5, dace: 6 };
     alerts.sort(function (a, b) { return rank[a.type] - rank[b.type]; });
     return { rows: rows, allValid: good, duplicadasIguais: duplicadasIguais, alerts: alerts, stats: {
       notas: rows.length,
@@ -468,7 +543,16 @@
       setProgress('Lendo notas… ' + (i + 1) + ' de ' + pdfs.length);
       var parts = splitFileName(f.name), res;
       try { res = parseDanfe(await readPdf(f)); }
-      catch (e) { res = { ok: false, errors: ['não foi possível abrir o PDF (arquivo corrompido ou protegido)'], warnings: [] }; }
+      catch (e) {
+        var msg = 'não foi possível abrir o PDF (arquivo corrompido ou protegido)';
+        if (f.size < 4000) {
+          try {
+            var t = await f.text();
+            if (/^\s*[\{<]/.test(t) || /error|not_found/i.test(t)) msg = 'o arquivo não é um PDF: é uma mensagem de erro do sistema que gerou a nota' + (/not_found/i.test(t) ? ' (nota não encontrada)' : '') + '. Baixe a nota novamente';
+          } catch (_) { /* mantém a mensagem padrão */ }
+        }
+        res = { ok: false, errors: [msg], warnings: [] };
+      }
       entries.push({ key: 'e' + (++seq), seq: seq, file: f, fileName: f.name, sig: f.__sig, baseId: parts.baseId, copyIndex: parts.copyIndex, part: parts.part, res: res });
     }
     setProgress('');
@@ -479,8 +563,18 @@
   }
   var extraNotes = [];
 
-  var ICON = { erro: '❌', repetida: '♻️', igual: '🚨', duplicado: '🔁', atencao: '⚠️' };
-  var LABEL = { erro: 'NÃO RECONHECIDA', repetida: 'NF REPETIDA', igual: 'REPETIDA E IGUAL', duplicado: 'ID REPETIDO', atencao: 'ATENÇÃO' };
+  var ICON = { erro: '❌', revisar: '🧐', repetida: '♻️', igual: '🚨', duplicado: '🔁', atencao: '⚠️', dace: '📄' };
+  var LABEL = { erro: 'NÃO RECONHECIDA', revisar: 'REVISAR LAYOUT', repetida: 'NF REPETIDA', igual: 'REPETIDA E IGUAL', duplicado: 'ID REPETIDO', atencao: 'ATENÇÃO', dace: 'DACE · NÃO ENTRA' };
+
+  function reviewControls(x) {
+    var k = esc(x.key);
+    return '<div class="demo-review-ctl">' +
+      '<label class="demo-radio"><input type="radio" name="inc-' + k + '" value="1" data-demo-include="' + k + '"' + (x.include ? ' checked' : '') + '> ✅ Incluir no demonstrativo</label>' +
+      '<label class="demo-radio"><input type="radio" name="inc-' + k + '" value="0" data-demo-include="' + k + '"' + (x.include ? '' : ' checked') + '> 🚫 Não incluir</label>' +
+      (x.include ? '<span class="demo-fill"><label>Descrição <input type="text" class="' + (x.missing.item ? 'demo-need' : '') + '" data-demo-fill="item" data-key="' + k + '" value="' + esc(x.item) + '" placeholder="descrição do item"></label>' +
+        '<label>Valor (R$) <input type="text" class="' + (x.missing.valor ? 'demo-need' : '') + '" data-demo-fill="valor" data-key="' + k + '" value="' + (x.valor != null ? esc(Number(x.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })) : '') + '" placeholder="0,00" size="9"></label></span>' : '') +
+      '</div>';
+  }
 
   function render() {
     var a = assemble(entries);
@@ -496,9 +590,11 @@
     $('demo-stat-prob').parentElement.classList.toggle('demo-stat-bad', a.stats.problemas > 0);
 
     var obs = $('demo-obs');
-    var parts = a.alerts.map(function (x) {
+    var parts = a.alerts.map(function (x, idx) {
       return '<li class="demo-obs-' + x.type + '"><span class="demo-obs-tag">' + ICON[x.type] + ' ' + LABEL[x.type] + '</span> ' +
-        '<strong>' + esc(x.id) + '</strong> — ' + esc(x.text) + (x.file ? ' <em>(arquivo: ' + esc(x.file) + ')</em>' : '') + '</li>';
+        '<strong>' + esc(x.id) + '</strong> — ' + esc(x.text) + (x.file ? ' <em>(arquivo: ' + esc(x.file) + ')</em>' : '') +
+        (x.details ? ' <button type="button" class="demo-details-btn" data-demo-details="' + idx + '">🔍 VER DETALHES</button>' : '') +
+        (x.type === 'revisar' ? reviewControls(x) : '') + '</li>';
     });
     extraNotes.forEach(function (t) { parts.push('<li class="demo-obs-atencao"><span class="demo-obs-tag">ℹ️ INFO</span> ' + esc(t) + '</li>'); });
     obs.innerHTML = parts.length
@@ -508,26 +604,28 @@
     var warnKeys = {};
     entries.forEach(function (e) { if (e.res && e.res.ok && e.res.warnings.length) warnKeys[e.key] = true; });
     $('demo-tbody').innerHTML = a.rows.map(function (r) {
-      var flag = r.renamed ? ' demo-row-renamed' : (r.warnings.length ? ' demo-row-warn' : '');
+      var flag = r.incomplete ? ' demo-row-warn' : (r.renamed ? ' demo-row-renamed' : (r.warnings.length ? ' demo-row-warn' : ''));
       return '<tr class="' + flag.trim() + '"><td>' + esc(r.id) + '</td><td class="demo-mono">' + esc(r.chave) + '</td><td>' + esc(formatNF(r.nf)) +
-        '</td><td class="demo-left" title="' + esc(r.item) + '">' + esc(r.item) + '</td><td>' + esc(Number(r.qtd).toLocaleString('pt-BR')) + '</td><td>' + esc(formatBRL(r.valor)) + '</td><td>' + esc(r.status) +
+        '</td><td class="demo-left" title="' + esc(r.item) + '">' + (esc(r.item) || '—') + '</td><td>' + esc(Number(r.qtd).toLocaleString('pt-BR')) + '</td><td>' + (esc(formatBRL(r.valor)) || '—') + '</td><td>' + esc(r.status) +
         '</td><td><button type="button" class="demo-x" data-demo-remove="' + esc(r.key) + '" title="Remover esta nota">✕</button></td></tr>';
     }).join('') || '<tr><td colspan="8" class="demo-empty">Nenhuma nota reconhecida ainda.</td></tr>';
 
     var dis = a.rows.length === 0;
     $('demo-btn-xlsx').disabled = dis; $('demo-btn-pdf').disabled = dis;
     $('demo-btn-notas').disabled = dis;
-    $('demo-btn-notas').textContent = '⬇ BAIXAR NOTAS (' + a.rows.length + ')';
+    var temDuplicadas = a.duplicadasIguais.length > 0, nTodas = a.allValid.length;
+    $('demo-btn-notas').textContent = '⬇ BAIXAR NOTAS (' + a.rows.length + ')' + (temDuplicadas ? ' · SEM DUPLICADAS' : '');
+    $('demo-btn-notas').title = 'ZIP com as notas do demonstrativo, sem as repetidas com informações iguais (IDs iguais com notas diferentes já saem separados: -1, -2...)';
     $('demo-btn-agrupar').disabled = !a.rows.length;
-    $('demo-btn-agrupar').textContent = '⬇ AGRUPAR TODAS AS ' + a.rows.length + ' NOTAS';
-    var temDuplicadas = a.duplicadasIguais.length > 0;
-    var temIdDuplicado = temDuplicadas || a.stats.renomeados > 0;
-    $('demo-btn-notas-duplicadas').classList.toggle('hidden', !temIdDuplicado);
-    $('demo-btn-notas-duplicadas').disabled = !temIdDuplicado;
-    $('demo-btn-notas-duplicadas').textContent = temDuplicadas ? '⬇ BAIXAR COM DUPLICADAS' : '⚠ BAIXAR COM ID DUPLICADO';
+    $('demo-btn-agrupar').textContent = temDuplicadas ? '⬇ AGRUPAR NOTAS (' + a.rows.length + ') · SEM DUPLICADAS' : '⬇ AGRUPAR TODAS AS ' + a.rows.length + ' NOTAS';
+    $('demo-btn-notas-duplicadas').classList.toggle('hidden', !temDuplicadas);
+    $('demo-btn-notas-duplicadas').disabled = !temDuplicadas;
+    $('demo-btn-notas-duplicadas').textContent = '⬇ BAIXAR COM DUPLICADAS (' + nTodas + ')';
+    $('demo-btn-notas-duplicadas').title = 'ZIP com todas as notas, inclusive as repetidas com informações iguais';
     $('demo-btn-agrupar-duplicadas').classList.toggle('hidden', !temDuplicadas);
     $('demo-btn-agrupar-duplicadas').disabled = !temDuplicadas;
-    $('demo-btn-agrupar-duplicadas').textContent = '⬇ AGRUPAR COM DUPLICADAS';
+    $('demo-btn-agrupar-duplicadas').textContent = '⬇ AGRUPAR TODAS AS ' + nTodas + ' NOTAS · COM DUPLICADAS';
+    $('demo-btn-agrupar-duplicadas').title = 'Um único PDF com todas as notas, inclusive as repetidas com informações iguais';
   }
   var current = { rows: [], alerts: [], stats: {} };
 
@@ -541,14 +639,18 @@
     setTimeout(function () { a.remove(); URL.revokeObjectURL(url); }, 1500);
   }
 
+  function confirmaIncompletas() {
+    var n = current.rows.filter(function (r) { return r.incomplete; }).length;
+    return !n || confirm(n + ' nota(s) incluída(s) estão sem descrição ou sem valor (marcadas com —). Exportar mesmo assim?');
+  }
   async function exportXlsx() {
-    if (!current.rows.length) return;
+    if (!current.rows.length || !confirmaIncompletas()) return;
     if (!root.ExcelJS) { alert('Biblioteca de Excel não carregou. Verifique a internet e recarregue (F5).'); return; }
     var buf = await buildXlsx(root.ExcelJS, current.rows);
     download(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fileBase() + '.xlsx');
   }
   function exportPdf() {
-    if (!current.rows.length) return;
+    if (!current.rows.length || !confirmaIncompletas()) return;
     if (!(root.jspdf && root.jspdf.jsPDF)) { alert('Biblioteca de PDF não carregou. Verifique a internet e recarregue (F5).'); return; }
     var jsPDF = root.jspdf.jsPDF;
     var at = function (doc, opts) { if (typeof doc.autoTable === 'function') return doc.autoTable(opts); return root.jspdf.autoTable(doc, opts); };
@@ -660,6 +762,65 @@
     }
   }
 
+  /* ---------------- VER DETALHES (revisão agrupada) ---------------- */
+  var modalEl = null;
+  function closeDetails() { if (modalEl) modalEl.classList.add('hidden'); }
+  function detailsHtml(d) {
+    var rows = d.rows || [];
+    if (d.kind === 'erro') {
+      var r0 = rows[0] || {};
+      return '<div class="demo-rev-box demo-rev-bad"><strong>Arquivo:</strong> ' + esc(r0.file) + '<br><strong>ID:</strong> ' + esc(r0.id) + '<br><strong>Motivo:</strong> ' + esc(r0.motivo) + '</div>' +
+        '<p class="demo-modal-note">Esta nota <strong>não entrou</strong> no demonstrativo, nem nos ZIPs e PDFs agrupados. Corrija o arquivo e adicione de novo.</p>';
+    }
+    if (d.kind === 'dace') {
+      return '<div class="demo-table-wrap"><table class="demo-table"><thead><tr><th>ID</th><th>Arquivo</th><th>Título no documento</th><th>Situação</th></tr></thead><tbody>' +
+        rows.map(function (r) { return '<tr><td><strong>' + esc(r.id) + '</strong></td><td>' + esc(r.file) + '</td><td>' + esc(r.titulo) + '</td><td>' + esc(r.papel) + '</td></tr>'; }).join('') + '</tbody></table></div>' +
+        '<div class="demo-rev-box demo-rev-ok"><strong>DACE RESUMIDA - DECLARAÇÃO AUXILIAR DE CONTEÚDO</strong> é só o documento de transporte do pacote: não tem valor de nota fiscal. Por isso de fato <strong>não entram</strong> no demonstrativo.</div>';
+    }
+    if (d.kind === 'revisar') {
+      var rv = rows[0] || {};
+      return '<div class="demo-table-wrap"><table class="demo-table"><thead><tr><th>Situação</th><th>ID</th><th>Arquivo</th><th>NF</th><th>Descrição lida</th><th>Valor lido</th></tr></thead><tbody><tr><td>' + esc(rv.papel) + '</td><td><strong>' + esc(rv.id) + '</strong></td><td>' + esc(rv.file) + '</td><td>' + esc(formatNF(rv.nf)) + '</td><td class="demo-left">' + (esc(rv.item) || '—') + '</td><td>' + (esc(formatBRL(rv.valor)) || '—') + '</td></tr></tbody></table></div>' +
+        '<div class="demo-rev-box demo-rev-bad"><strong>Por que está em revisão:</strong> ' + esc(rv.motivo) + '</div>' +
+        '<p class="demo-modal-note">Ela é uma NF-e válida (a chave de acesso foi lida), mas o layout é diferente dos conhecidos. Por padrão ela fica <strong>incluída</strong>; na lista de observações você pode escolher <strong>Não incluir</strong> ou completar descrição/valor.</p>';
+    }
+    var fields = [['nf', 'NF'], ['chave', 'chave de acesso'], ['item', 'descrição'], ['valor', 'valor']];
+    var key = function (f, r) { return f === 'item' ? norm(r.item) : f === 'valor' ? String(cents(r.valor)) : String(r[f]); };
+    var diff = {}, diffNames = [], sameNames = [];
+    fields.forEach(function (f) {
+      var vals = rows.map(function (r) { return key(f[0], r); });
+      var differs = vals.some(function (v) { return v !== vals[0]; });
+      diff[f[0]] = differs; (differs ? diffNames : sameNames).push(f[1]);
+    });
+    var cell = function (f, txt, cls) { return '<td class="' + (cls || '') + (diff[f] ? ' demo-diff' : '') + '" title="' + esc(txt) + '">' + esc(txt) + '</td>'; };
+    var html = '<div class="demo-table-wrap"><table class="demo-table demo-rev-table"><thead><tr><th>Situação</th><th>ID no demonstrativo</th><th>Arquivo</th><th>NF</th><th>Descrição</th><th>Valor</th><th>Chave de acesso</th></tr></thead><tbody>' +
+      rows.map(function (r) {
+        return '<tr><td>' + esc(r.papel) + '</td><td><strong>' + esc(r.id) + '</strong></td><td>' + esc(r.file) + '</td>' +
+          cell('nf', formatNF(r.nf)) + cell('item', r.item, 'demo-left') + cell('valor', formatBRL(r.valor)) + cell('chave', r.chave, 'demo-mono') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+    var rev;
+    if (d.kind === 'duplicado') {
+      rev = diffNames.length
+        ? '<div class="demo-rev-box demo-rev-ok"><strong>✔ Notas diferentes com o mesmo ID.</strong> Todas ficam no demonstrativo, separadas como ' + rows.map(function (r) { return '<code>' + esc(r.id) + '</code>'; }).join(', ') + '.<br>Diferem em: <strong>' + esc(diffNames.join(', ')) + '</strong>' + (sameNames.length ? ' · Iguais: ' + esc(sameNames.join(', ')) : '') + '.</div>'
+        : '<div class="demo-rev-box demo-rev-bad"><strong>⚠ Todas as informações são iguais.</strong> Confira se não é a mesma nota enviada duas vezes.</div>';
+    } else {
+      rev = '<div class="demo-rev-box demo-rev-bad"><strong>⚠ É a mesma nota</strong> (mesma chave de acesso' + (diffNames.length ? '' : ', mesmo ID e mesmas informações') + '). Só uma fica no demonstrativo e em <em>BAIXAR NOTAS</em> / <em>AGRUPAR NOTAS</em>. Para levar as duas, use os botões <strong>COM DUPLICADAS</strong>.</div>';
+    }
+    return html + rev + '<p class="demo-modal-note">Células em amarelo = informação diferente entre as notas.</p>';
+  }
+  function openDetails(d) {
+    if (!modalEl) {
+      modalEl = document.createElement('div');
+      modalEl.className = 'demo-modal hidden';
+      modalEl.innerHTML = '<div class="demo-modal-box" role="dialog" aria-modal="true"><div class="demo-modal-head"><h4 id="demo-modal-title"></h4><button type="button" class="demo-modal-x" aria-label="Fechar">✕</button></div><div id="demo-modal-body" class="demo-modal-body"></div><div class="demo-modal-foot"><button type="button" class="editor-btn demo-modal-close">Fechar</button></div></div>';
+      document.body.appendChild(modalEl);
+      modalEl.addEventListener('click', function (e) { if (e.target === modalEl || e.target.closest('.demo-modal-x, .demo-modal-close')) closeDetails(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDetails(); });
+    }
+    document.getElementById('demo-modal-title').textContent = d.title || 'Detalhes';
+    document.getElementById('demo-modal-body').innerHTML = detailsHtml(d);
+    modalEl.classList.remove('hidden');
+  }
+
   function init() {
     var drop = $('demo-drop'), input = $('demo-file');
     if (!drop || !input) return;
@@ -721,6 +882,25 @@
       var all = entries.slice();
       entries = []; seen = {}; extraNotes = []; render();
       pushUndo(all, 'Todas as notas foram removidas.');
+    });
+    $('demo-obs').addEventListener('change', function (e) {
+      var t = e.target, key, en;
+      if (t.matches('[data-demo-include]')) {
+        key = t.getAttribute('data-demo-include'); en = entries.find(function (x) { return x.key === key; });
+        if (en) { en.include = t.value === '1'; render(); }
+      } else if (t.matches('[data-demo-fill]')) {
+        key = t.getAttribute('data-key'); en = entries.find(function (x) { return x.key === key; });
+        if (!en) return;
+        en.override = en.override || {};
+        if (t.getAttribute('data-demo-fill') === 'valor') en.override.valor = parseMoney(t.value);
+        else en.override.item = t.value.replace(/\s+/g, ' ').trim();
+        render();
+      }
+    });
+    $('demo-obs').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-demo-details]'); if (!b) return;
+      var al = current.alerts[Number(b.getAttribute('data-demo-details'))];
+      if (al && al.details) openDetails(al.details);
     });
     $('demo-tbody').addEventListener('click', function (e) {
       var b = e.target.closest('[data-demo-remove]'); if (!b) return;
