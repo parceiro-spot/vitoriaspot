@@ -401,13 +401,13 @@ que os pacotes se tornem LOST.</p>
           </div>
         </div>
         <div class="registro-toolbar">
-          <label>Filtrar por mês<select id="sr-month-filter"><option value="all">Todos os meses</option></select></label>
+          <label>Pasta (mês)<select id="sr-month-filter"><option value="all">Todas as pastas</option></select></label><label>Regional<select id="sr-region-filter"><option value="all">Todas as regionais</option></select></label><label>Organizar<select id="sr-view"><option value="recent">Mais recentes primeiro</option><option value="region">Separar por regional</option></select></label>
           <label>Pesquisar<input id="sr-search" type="search" placeholder="motorista, causa, SSP45..."></label>
           <div class="registro-counter"><strong id="sr-count">0</strong><span>registros salvos</span></div>
         </div>
         <div class="registro-layout">
           <aside class="registro-list-panel">
-            <div class="registro-list-head"><strong>Casos por mês</strong><span id="sr-list-hint">Nenhum caso ainda</span></div>
+            <div class="registro-list-head"><strong>Pastas por mês</strong><span id="sr-list-hint">Nenhum caso ainda</span></div>
             <div id="sr-record-list" class="registro-record-list"></div>
           </aside>
           <main class="registro-form-card">
@@ -458,7 +458,7 @@ que os pacotes se tornem LOST.</p>
               <select id="sr-has-helper"><option value="nao">Não</option><option value="sim">Sim</option></select>
             </div>
             <div id="sr-helper-fields" class="hidden">
-              <div class="registro-section-title">Dados Pessoais do Ajudante</div>
+              <div class="registro-section-title">Sobre o ajudante · Dados pessoais</div>
               <div class="registro-grid">
                 <label>Ajudante<input id="sr-helper-name" placeholder="Nome completo"></label>
                 <label>CPF<input id="sr-helper-cpf" placeholder="000.000.000-00"></label>

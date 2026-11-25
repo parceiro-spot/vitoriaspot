@@ -272,7 +272,7 @@
           details: { title: 'Nota não reconhecida — ' + e.baseId, kind: 'erro', rows: [{ papel: e.include === true ? 'Incluída manualmente' : 'Não incluída', id: e.baseId, file: e.fileName, motivo: errReason }] },
           text: e.include === true
             ? 'Arquivo incluído manualmente, mas os dados precisam ser conferidos: ' + errReason + '.'
-            : 'Nota não reconhecida e NÃO incluída no demonstrativo: ' + errReason + '.'
+            : 'ID SEM PDF'
         });
       }
     });
@@ -280,7 +280,7 @@
       alerts.push({
         type: 'dace', id: daces.length + (daces.length === 1 ? ' declaração' : ' declarações'),
         details: { kind: 'dace', title: 'DACE resumida — declaração auxiliar de conteúdo', rows: daces.map(function (e) { return { papel: 'Não entra', id: e.baseId, file: e.fileName, titulo: e.res.docTitle || '' }; }) },
-        text: 'Declaração de conteúdo — "DACE RESUMIDA - DECLARAÇÃO AUXILIAR DE CONTEÚDO" ou "DECLARAÇÃO" (documento de transporte, sem valor): de fato NÃO entram no demonstrativo, nem nos ZIPs/PDFs agrupados. IDs: ' + daces.map(function (e) { return e.baseId; }).join(', ') + '.'
+        text: 'DECLARAÇÃO AUXILIAR DE CONTEÚDO (DACE) — não entra no demonstrativo. IDs: ' + daces.map(function (e) { return e.baseId; }).join(', ') + '.'
       });
     }
 
@@ -378,7 +378,7 @@
       total: totalCents / 100,
       renomeados: renamed,
       repetidosIguais: iguaisPorChave + alerts.filter(function (a) { return a.type === 'igual'; }).length,
-      problemas: alerts.filter(function (a) { return a.type === 'erro' || a.type === 'repetida' || a.type === 'igual'; }).length
+      problemas: alerts.reduce(function (n, a) { if (a.type === 'igual') return n; return n + (a.type === 'dace' && a.details && a.details.rows ? a.details.rows.length : 1); }, 0)
     } };
   }
 
@@ -606,7 +606,7 @@
   var extraNotes = [];
 
   var ICON = { erro: '❌', revisar: '🧐', repetida: '♻️', igual: '🚨', duplicado: '🔁', atencao: '⚠️', dace: '📄' };
-  var LABEL = { erro: 'NÃO RECONHECIDA', revisar: 'REVISAR LAYOUT', repetida: 'NF REPETIDA', igual: 'REPETIDA E IGUAL', duplicado: 'ID REPETIDO', atencao: 'ATENÇÃO', dace: 'DACE · NÃO ENTRA' };
+  var LABEL = { erro: 'NÃO RECONHECIDA', revisar: 'REVISAR LAYOUT', repetida: 'NF REPETIDA', igual: 'REPETIDA E IGUAL', duplicado: 'ID REPETIDO', atencao: 'ATENÇÃO', dace: 'DACE · DECLARAÇÃO AUXILIAR DE CONTEÚDO' };
 
   function reviewControls(x) {
     var k = esc(x.key);
@@ -644,6 +644,7 @@
     $('demo-stat-igual-card').classList.toggle('demo-stat-bad', a.stats.repetidosIguais > 0);
     $('demo-stat-prob').textContent = a.stats.problemas;
     $('demo-stat-prob').parentElement.classList.toggle('demo-stat-bad', a.stats.problemas > 0);
+    (function(c){ if(!c.__demoJump){ c.__demoJump=true; c.style.cursor='pointer'; c.title='Clique para ver os detalhes das notas com problema'; c.addEventListener('click',function(){ var o=$('demo-obs'); if(o&&o.scrollIntoView) o.scrollIntoView({behavior:'smooth',block:'start'}); }); } })($('demo-stat-prob').parentElement);
 
     var obs = $('demo-obs');
     var parts = a.alerts.map(function (x, idx) {

@@ -86,3 +86,16 @@ Abra `index.html` diretamente ou publique os três arquivos juntos. O armazename
 - Faixa azul com os números principais e o mascote Parceiro Spot (`mascote.js`).
 - Seções numeradas: Dados pessoais · Ficha Rota/Motorista · Ficha Sinistro · Documentos e seguro (✓/✕) · Acesso aos documentos (links). Campos vazios e ajudante (quando não há) não aparecem.
 - Ilustrações em `vehicle-art.js`. Para usar fotos reais, basta substituir a função `SpotVehicleArt`.
+
+### Atualização — pastas por mês, salvamento e documentos agrupados
+- **Salvamento corrigido:** os registros (com anexos) agora ficam no IndexedDB do navegador. Antes, o `localStorage` estourava o limite com PDFs e o registro não era salvo. Se o salvamento falhar, aparece um aviso em vez de "Ficha salva".
+- **Pastas por mês** (ex.: `DEZ 26`, `NOV 26`, `OUT 26`), da mais recente para a mais antiga; dentro de cada pasta os sinistros ficam do mais recente para o mais antigo **pela data do sinistro** (um caso antigo cadastrado depois entra na posição certa). Filtros por pasta, por regional e opção "Separar por regional" (sempre do mais recente ao mais antigo).
+- **Documentos agrupados:** Documentos do Motorista (CNH, GR, Contrato) · Veículo (CRLV, GR da placa) · Sobre o ajudante (RG, Contrato, GR — só quando "Possui ajudante" = Sim) · Ocorrência e outros.
+- **Reconhecimento automático** ao soltar vários arquivos: pelo tipo (GR, CNH, CRLV, RG, contrato, B.O., NF…) e pelo **nome** — se o nome do arquivo tiver o nome do ajudante preenchido no topo, vai para o ajudante; nome do motorista ou placa, para o motorista/veículo. Não precisa escrever "AJUDANTE" no arquivo.
+- O portfólio usa os mesmos grupos em "Documentos para Seguro" e não lista mais "Ficha preenchida via WhatsApp".
+- A imagem do veículo também considera o campo Modelo (ex.: Kwid → carro, Sprinter → van).
+
+### Observações do demonstrativo
+- **DACE** (declaração auxiliar de conteúdo) aparece em **azul**, identificada como "DECLARAÇÃO AUXILIAR DE CONTEÚDO", e não entra no demonstrativo.
+- IDs com nota que não abre ou qualquer outro erro mostram só o motivo resumido **"ID SEM PDF"** (o motivo detalhado continua em "Ver detalhes").
+- O contador **Notas com problema (fora)** agora soma todas as observações (não reconhecidas, revisar layout, NF repetida, ID repetido, atenção e DACE — cada declaração conta 1), **exceto** as repetidas com mesmas informações, que têm o contador próprio. Clicar no contador rola até a lista de observações, onde cada item tem o botão "Ver detalhes".

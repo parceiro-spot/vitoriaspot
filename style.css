@@ -683,7 +683,7 @@ body {
 
 /* ===== DEMONSTRATIVO: revisar layout / DACE ===== */
 .demo-obs .demo-obs-revisar{border-left-color:#ea580c;background:#fff7ed}
-.demo-obs .demo-obs-dace{border-left-color:#64748b;background:#f1f5f9}
+.demo-obs .demo-obs-dace{border-left-color:#2563eb;background:#eff6ff}
 .demo-review-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-top:8px;padding-top:8px;border-top:1px dashed #fdba74}
 .demo-radio{display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:12px;cursor:pointer}
 .demo-fill{display:inline-flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11.5px;font-weight:600}
