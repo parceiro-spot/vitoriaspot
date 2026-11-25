@@ -56,3 +56,7 @@ Abra `index.html` diretamente ou publique os três arquivos juntos. O armazename
 - Checklist de documentos com nomes editáveis, exclusão/adição e direcionamento de vários arquivos pelo nome.
 - **Baixar portfólio** gera um ZIP com `ficha.html` navegável e pasta `documentos/`, para abrir e consultar os anexos sem depender de PDF. A opção de visualização/impressão continua disponível.
 - Registros ficam salvos no navegador via `localStorage`; os anexos escolhidos ficam disponíveis para o portfólio durante a sessão atual.
+
+### Correção de documentos no Registro de Sinistro
+- Arquivos com `NOTAS FISCAIS`, `NOTA FISCAL` ou `DANFE` no nome são direcionados automaticamente para a categoria editável `DANFE / Notas fiscais`.
+- Cada linha do checklist agora tem o botão **Adicionar**, permitindo anexar manualmente um ou vários arquivos diretamente naquela categoria.
