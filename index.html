@@ -415,11 +415,16 @@ que os pacotes se tornem LOST.</p>
             <div class="registro-section-title">Identificação e ocorrência</div>
             <div class="registro-grid">
               <label>Nome interno / Drive<input id="sr-drive-name" placeholder="ROUBO SSP45"></label>
-              <label>Regional<select id="sr-regional"><option value="ES">ESPÍRITO SANTO — SES / EBA</option><option value="MG">MINAS GERAIS — SMG / EMG</option><option value="BA">BAHIA — SBA</option><option value="RJ">RIO DE JANEIRO — ERJ / SRJ</option><option value="SP">SÃO PAULO — SSP</option><option value="OUTRA">OUTRA / NÃO INFORMADA</option></select></label>
+              <label>Regional reconhecida<input id="sr-regional" readonly placeholder="Será reconhecida pela sigla"></label>
+              <label>Operação<select id="sr-marketplace"><option value="mercadolivre">Mercado Livre</option><option value="shopee">Shopee</option></select></label>
               <label>Causa<select id="sr-causa"><option>ROUBO</option><option>FURTO</option><option>AVARIA</option><option>EXTRAVIO</option><option>OUTRO</option></select></label>
               <label>Data e hora do sinistro<input id="sr-datetime" type="datetime-local"></label>
               <label>Dia da semana<input id="sr-weekday" readonly placeholder="Preenchido automaticamente"></label>
               <label class="wide">Local do sinistro<input id="sr-local" placeholder="Rua, número, cidade - UF"></label>
+              <div class="registro-subtitle wide">Ficha de Rota/Motorista</div>
+              <label>Operação<input id="sr-operation" placeholder="SRJ2"></label>
+              <label>ID da rota<input id="sr-route-id" placeholder="#478804754"></label>
+              <label>Rota<input id="sr-route" placeholder="VD5_AM1"></label>
               <label>Embarcador<input id="sr-shipper" value="MERCADO ENVIOS"></label>
               <label>Transportador<input id="sr-carrier" value="PARCEIRO SPOT SOLUÇÕES"></label>
               <label>Remetente<input id="sr-sender" value="MERCADO ENVIOS"></label>
@@ -435,11 +440,13 @@ que os pacotes se tornem LOST.</p>
               <label>Estimativa do prejuízo (R$)<input id="sr-loss" placeholder="23.493,13"></label>
               <label>Quantidade de NFs<input id="sr-invoices" type="number" min="0" value="0"></label>
             </div>
-            <div class="registro-section-title">Motorista, ajudante e veículo</div>
+            <div class="registro-section-title">Dados pessoais</div>
             <div class="registro-grid">
               <label>Motorista<input id="sr-driver" placeholder="Nome completo"></label>
+              <label>ID do motorista<input id="sr-driver-id" placeholder="4782559"></label>
               <label>CPF<input id="sr-cpf" placeholder="000.000.000-00"></label>
               <label>CNH<input id="sr-cnh" placeholder="Número / categoria"></label>
+              <label>Telefone<input id="sr-phone" placeholder="+55 21 99970-0513"></label>
               <label>Placa<input id="sr-plate" placeholder="ABC1D23"></label>
               <label>Tipo de veículo<select id="sr-vehicle"><option value="VUC">VUC</option><option value="VAN">VAN</option><option value="3/4">3/4</option><option value="TOCO">TOCO</option><option value="TRUCK">TRUCK</option><option value="CARRETA">CARRETA</option><option value="MOTO">MOTO</option><option value="OUTRO">OUTRO</option></select></label>
               <label>Modelo / observação<input id="sr-model" placeholder="Modelo do veículo"></label>
@@ -462,7 +469,7 @@ que os pacotes se tornem LOST.</p>
             <textarea id="sr-whatsapp-note" class="whatsapp-note-input" rows="12" placeholder="ficha Douglas ferreira da silva\n\n🗒️ Operação: SRJ2\n🗓️ Data: 24/11/2026\n👤 Motorista: Douglas ferreira da silva\n..."></textarea>
             <div class="registro-form-actions compact"><button type="button" class="editor-btn" id="sr-format-whatsapp">Formatar ficha no portfólio</button><span id="sr-whatsapp-state" class="save-state"></span></div>
             <div class="registro-section-title">Documentos do caso</div>
-            <div class="doc-config-bar"><span>Os nomes abaixo são editáveis. Você pode excluir ou adicionar documentos.</span><button type="button" class="editor-btn" id="sr-add-doc">+ Adicionar documento</button></div>
+            <div class="doc-config-bar"><span>Os nomes abaixo são editáveis. Em <strong>Outros documentos</strong>, você também pode criar uma categoria e definir o nome antes de anexar o arquivo.</span><div><button type="button" class="editor-btn" id="sr-add-other-doc">+ Outro documento com nome</button><button type="button" class="editor-btn" id="sr-add-doc">+ Adicionar documento</button></div></div>
             <div id="sr-doc-list" class="doc-checklist"></div>
             <div class="bulk-drop" id="sr-bulk-drop"><strong>Solte vários arquivos aqui</strong><span>O sistema tenta direcionar pelo nome do arquivo. Se não encontrar, deixe em “Outros”.</span><input id="sr-bulk-files" type="file" multiple hidden></div>
             <div class="registro-form-actions"><button type="button" class="editor-btn danger" id="sr-delete">Excluir registro</button><button type="button" class="editor-btn" id="sr-print">Visualizar / imprimir ficha</button><button type="button" class="editor-btn primary" id="sr-save">Salvar ficha</button><button type="button" class="editor-btn primary" id="sr-portfolio">Baixar portfólio deste caso</button></div>
