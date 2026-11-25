@@ -6,3 +6,9 @@
 .doc-add{font:700 10px Montserrat,sans-serif;color:#4f8425;background:#eef8e9;border:1px solid #c9e4b7;border-radius:6px;padding:5px 7px;cursor:pointer;white-space:nowrap}
 .doc-add:hover{background:#dff1d4}
 @media(max-width:600px){.doc-row{grid-template-columns:22px 1fr auto}.doc-file-name{grid-column:2/-1}}
+
+/* Agrupamento por mês e regional */
+.registro-month-label{display:flex;align-items:center;justify-content:space-between;gap:8px}.month-count{font-size:9px;font-weight:800;color:#fff;background:#6da22b;border-radius:12px;padding:4px 7px;white-space:nowrap}.registro-region{border-left:2px solid #dbead0;margin:4px 7px 8px;padding-left:5px}.registro-region-label{display:flex;justify-content:space-between;gap:6px;color:#53674d;font-size:9px;font-weight:800;padding:5px 4px;text-transform:uppercase}.registro-region-label span{color:#6da22b;background:#eff8e9;border-radius:10px;padding:2px 6px}
+
+/* Ficha WhatsApp estruturada */
+.registro-help{font-size:10px;color:#6d786a;margin:-4px 0 9px}.whatsapp-note-input{width:100%;font:500 12px/1.5 Montserrat,sans-serif;border:1px solid #dce5d8;border-radius:9px;padding:10px;resize:vertical}.registro-form-actions.compact{justify-content:flex-start;margin-top:8px;padding-top:0;border-top:0}

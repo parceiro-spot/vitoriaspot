@@ -415,6 +415,7 @@ que os pacotes se tornem LOST.</p>
             <div class="registro-section-title">Identificação e ocorrência</div>
             <div class="registro-grid">
               <label>Nome interno / Drive<input id="sr-drive-name" placeholder="ROUBO SSP45"></label>
+              <label>Regional<select id="sr-regional"><option value="ES">ESPÍRITO SANTO — SES / EBA</option><option value="MG">MINAS GERAIS — SMG / EMG</option><option value="BA">BAHIA — SBA</option><option value="RJ">RIO DE JANEIRO — ERJ / SRJ</option><option value="SP">SÃO PAULO — SSP</option><option value="OUTRA">OUTRA / NÃO INFORMADA</option></select></label>
               <label>Causa<select id="sr-causa"><option>ROUBO</option><option>FURTO</option><option>AVARIA</option><option>EXTRAVIO</option><option>OUTRO</option></select></label>
               <label>Data e hora do sinistro<input id="sr-datetime" type="datetime-local"></label>
               <label>Dia da semana<input id="sr-weekday" readonly placeholder="Preenchido automaticamente"></label>
@@ -456,6 +457,10 @@ que os pacotes se tornem LOST.</p>
             <div id="sr-helper-fields" class="registro-grid hidden">
               <label>Nome do ajudante<input id="sr-helper-name"></label><label>CPF / RG<input id="sr-helper-doc"></label><label>Observação<input id="sr-helper-note"></label>
             </div>
+            <div class="registro-section-title">Ficha preenchida via WhatsApp</div>
+            <p class="registro-help">Cole a ficha bruta recebida no WhatsApp. Ela será apresentada no portfólio como uma ficha organizada, com os campos separados e o relato em destaque.</p>
+            <textarea id="sr-whatsapp-note" class="whatsapp-note-input" rows="12" placeholder="ficha Douglas ferreira da silva\n\n🗒️ Operação: SRJ2\n🗓️ Data: 24/11/2026\n👤 Motorista: Douglas ferreira da silva\n..."></textarea>
+            <div class="registro-form-actions compact"><button type="button" class="editor-btn" id="sr-format-whatsapp">Formatar ficha no portfólio</button><span id="sr-whatsapp-state" class="save-state"></span></div>
             <div class="registro-section-title">Documentos do caso</div>
             <div class="doc-config-bar"><span>Os nomes abaixo são editáveis. Você pode excluir ou adicionar documentos.</span><button type="button" class="editor-btn" id="sr-add-doc">+ Adicionar documento</button></div>
             <div id="sr-doc-list" class="doc-checklist"></div>

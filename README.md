@@ -60,3 +60,23 @@ Abra `index.html` diretamente ou publique os três arquivos juntos. O armazename
 ### Correção de documentos no Registro de Sinistro
 - Arquivos com `NOTAS FISCAIS`, `NOTA FISCAL` ou `DANFE` no nome são direcionados automaticamente para a categoria editável `DANFE / Notas fiscais`.
 - Cada linha do checklist agora tem o botão **Adicionar**, permitindo anexar manualmente um ou vários arquivos diretamente naquela categoria.
+
+### Organização por regional
+- A ficha possui o campo editável **Regional** com Espírito Santo (SES/EBA), Minas Gerais (SMG/EMG), Bahia (SBA), Rio de Janeiro (ERJ/SRJ) e São Paulo (SSP).
+- A lista é exibida em três níveis: **mês → regional → sinistros**.
+- Cada bloco mensal mostra a quantidade total de sinistros; cada regional mostra seu próprio contador.
+- O portfólio inclui o nome da regional e os anexos aparecem como links **Abrir / baixar**, funcionando para GR, CNH, CRLV, B.O., DANFE e demais arquivos anexados.
+
+### Foto do motorista no portfólio
+- O portfólio não usa mais a foto do caminhão como imagem principal.
+- Ele procura a primeira imagem JPG, PNG ou WEBP anexada na categoria **CNH do motorista** e usa essa imagem no cabeçalho como foto do motorista.
+- A CNH continua disponível também como documento clicável. Para que o rosto apareça no cabeçalho, anexe a CNH como imagem ou anexe um recorte/foto da área da foto dentro da categoria CNH; PDFs continuam disponíveis para abrir, mas não são recortados automaticamente pelo navegador.
+
+### Checklist automático
+- Ao anexar um arquivo em qualquer documento, a categoria é marcada automaticamente com **✓**.
+- Se o arquivo não for anexado ou o item for desmarcado manualmente, aparece **✕** no checklist e no portfólio.
+
+### Imagem profissional do veículo
+- A imagem do veículo não usa mais foto de caminhão da internet.
+- A ficha e o portfólio exibem uma ilustração vetorial limpa, com fundo branco, conforme o tipo selecionado: VUC, VAN, 3/4, TOCO, TRUCK, CARRETA ou MOTO.
+- O portfólio mantém a foto do motorista pela CNH separada da ilustração profissional do veículo.
