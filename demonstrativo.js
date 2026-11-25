@@ -104,10 +104,14 @@
       /\bDECLARACAO\s+AUXILIAR\s+DE\s+CONTEUDO\b/.test(textoCompleto) ||
       /\bCHAVE\s+DE\s+ACESSO\s+DA\s+DC-?E\b/.test(textoCompleto);
     var ehDeclaracaoConteudo = /\bDECLARACAO\s+(?:DE\s+)?CONTEUDO\b/.test(textoCompleto);
-    if (ehDace || ehDeclaracaoConteudo) {
+    // Declaração de transporte simples (título só "DECLARAÇÃO"): tem USUARIO EMITENTE / MODALIDADE DO TRANSPORTE e não é DANFE.
+    var ehDeclaracaoTransporte = /\bDECLARACAO\b/.test(textoCompleto) &&
+      /\bMODALIDADE\s+DO\s+TRANSPORTE\b/.test(textoCompleto) &&
+      /\bUSUARIO\s+EMITENTE\b/.test(textoCompleto) && !/\bDANFE\b/.test(textoCompleto);
+    if (ehDace || ehDeclaracaoConteudo || ehDeclaracaoTransporte) {
       out.ignored = true; out.ignoreReason = 'declaração de conteúdo (DC-e) sem valor';
       out.docTitle = textoCompleto.match(/(?:DACE[^ ]*(?:\s+RESUMIDA)?|DECLARACAO\s+(?:AUXILIAR\s+DE\s+)?CONTEUDO)/i);
-      out.docTitle = out.docTitle ? out.docTitle[0] : 'Declaração de conteúdo (DC-e/DACE)';
+      out.docTitle = out.docTitle ? out.docTitle[0] : 'Declaração auxiliar de conteúdo';
       return out;
     }
 
@@ -378,7 +382,7 @@
       total: totalCents / 100,
       renomeados: renamed,
       repetidosIguais: iguaisPorChave + alerts.filter(function (a) { return a.type === 'igual'; }).length,
-      problemas: alerts.reduce(function (n, a) { if (a.type === 'igual') return n; return n + (a.type === 'dace' && a.details && a.details.rows ? a.details.rows.length : 1); }, 0)
+      problemas: alerts.reduce(function (n, a) { if (a.type === 'igual' || a.type === 'atencao') return n; return n + (a.type === 'dace' && a.details && a.details.rows ? a.details.rows.length : 1); }, 0)
     } };
   }
 
@@ -644,7 +648,7 @@
     $('demo-stat-igual-card').classList.toggle('demo-stat-bad', a.stats.repetidosIguais > 0);
     $('demo-stat-prob').textContent = a.stats.problemas;
     $('demo-stat-prob').parentElement.classList.toggle('demo-stat-bad', a.stats.problemas > 0);
-    (function(c){ if(!c.__demoJump){ c.__demoJump=true; c.style.cursor='pointer'; c.title='Clique para ver os detalhes das notas com problema'; c.addEventListener('click',function(){ var o=$('demo-obs'); if(o&&o.scrollIntoView) o.scrollIntoView({behavior:'smooth',block:'start'}); }); } })($('demo-stat-prob').parentElement);
+    (function(c){ if(!c.__demoJump){ c.__demoJump=true; c.style.cursor='pointer'; c.title='Clique para ver as notas com problema'; c.addEventListener('click',function(){ var m=$('demo-prob-modal'); if(m) m.classList.remove('hidden'); }); var m=$('demo-prob-modal'); if(m){ m.addEventListener('click',function(e){ if(e.target===m||e.target.closest('.demo-prob-close')) m.classList.add('hidden'); }); document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var d=document.querySelector('.demo-modal:not(.hidden):not(#demo-prob-modal)'); if(!d) m.classList.add('hidden'); } }); } } })($('demo-stat-prob').parentElement);
 
     var obs = $('demo-obs');
     var parts = a.alerts.map(function (x, idx) {
@@ -656,7 +660,7 @@
     extraNotes.forEach(function (t) { parts.push('<li class="demo-obs-atencao"><span class="demo-obs-tag">ℹ️ INFO</span> ' + esc(t) + '</li>'); });
     var erroIds = a.alerts.filter(function (x) { return x.type === 'erro'; }).map(function (x) { return x.id; });
     obs.innerHTML = parts.length
-      ? '<h4>📌 Observações (não vão para o demonstrativo)' + (erroIds.length ? ' <button type="button" class="demo-details-btn" data-demo-copy-errors>📋 COPIAR IDS</button>' : '') + '</h4><ul>' + parts.join('') + '</ul>'
+      ? '<h4>📌 Notas com problema e avisos' + (erroIds.length ? ' <button type="button" class="demo-details-btn" data-demo-copy-errors>📋 COPIAR IDS</button>' : '') + '</h4><ul>' + parts.join('') + '</ul>'
       : '<p class="demo-ok">✅ Todas as notas foram reconhecidas e nenhum ID está repetido.</p>';
 
     var warnKeys = {};
