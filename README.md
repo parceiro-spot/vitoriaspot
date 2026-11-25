@@ -47,3 +47,12 @@ Abra `index.html` diretamente ou publique os três arquivos juntos. O armazename
 - Página **A4** (foto ajustada, retrato ou paisagem conforme a foto) ou **do tamanho da foto**. A orientação da foto do celular é respeitada.
 - Mesma ordem em que as fotos foram enviadas; ▲ ▼ ✕ e Ctrl+Z funcionam igual. HEIC/HEIF não é aceito pelo navegador (avisa para enviar em JPG/PNG).
 - Usa a biblioteca pdf-lib (cdnjs), então precisa de internet.
+
+## Registro de Sinistro — nova ficha
+- Aba **REGISTRO DE SINISTRO** dentro de SINISTRO, com casos organizados automaticamente por mês e busca por motorista, causa ou nome interno/Drive (ex.: ROUBO SSP45).
+- Ficha editável com data/hora, dia da semana automático, quantidades essenciais (saída da base, entregue, sinistrada e recuperada), local, prejuízo, motorista, CPF, CNH, placa e tipo de veículo.
+- Foto de referência real do tipo de veículo e campo para substituir pela foto real do caso.
+- Controle de seguro aberto, resultado e motivo de recusa/não acionamento; ajudante opcional com ficha própria.
+- Checklist de documentos com nomes editáveis, exclusão/adição e direcionamento de vários arquivos pelo nome.
+- **Baixar portfólio** gera um ZIP com `ficha.html` navegável e pasta `documentos/`, para abrir e consultar os anexos sem depender de PDF. A opção de visualização/impressão continua disponível.
+- Registros ficam salvos no navegador via `localStorage`; os anexos escolhidos ficam disponíveis para o portfólio durante a sessão atual.
