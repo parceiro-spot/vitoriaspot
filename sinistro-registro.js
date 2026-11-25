@@ -63,7 +63,7 @@
     const checklist=`${checkItems(mainDocs)}${r.hasHelper?`<h3 class="sub">Documentos do ajudante</h3>${checkItems(helperDocs)}`:''}`;
     const insurance=`<div class="ins"><span class="pill ${r.insuranceOpen?'on':''}">Seguro ${r.insuranceOpen?'aberto':'não aberto'}</span>${has(g('insurance-status','insuranceStatus'))?`<span class="pill">${esc(g('insurance-status','insuranceStatus'))}</span>`:''}${has(g('insurance-reason','insuranceReason'))?`<span class="ins-note">${esc(g('insurance-reason','insuranceReason'))}</span>`:''}</div>`;
     const linked=docs.filter(d=>(d.files||[]).length);
-    const links=linked.length?linked.map(d=>`<div class="lk"><b>${esc(d.label)}</b><div>${d.files.map(f=>{const href=includeFiles?('documentos/'+safe(f.name)):(f.data||('documentos/'+safe(f.name)));return `<a href="${esc(href)}" target="_blank" rel="noopener" download="${esc(f.name)}">${esc(f.name)}</a>`;}).join('')}</div></div>`).join(''):'<p class="muted">Nenhum arquivo anexado.</p>';
+    const links=linked.length?linked.map(d=>`<div class="lk"><b>${esc(d.label)}</b><div>${d.files.map(f=>{const href=f.data||('documentos/'+safe(f.name));return `<a href="${esc(href)}" target="_blank" rel="noopener" download="${esc(f.name)}">${esc(f.name)}</a>`;}).join('')}</div></div>`).join(''):'<p class="muted">Nenhum arquivo anexado.</p>';
     const vehicleImg=r.vehiclePhoto||vehicleIllustration(r.vehicle||'VUC');
     const mascot=window.SPOT_MASCOTE||'';
     const title=r.driveName||'Registro de sinistro';
@@ -109,14 +109,19 @@ ${S('Acesso aos documentos','Links para abrir ou baixar',links)}
       }
       if(!attached){alert('Nenhum documento válido foi encontrado para incluir no portfólio.');return;}
       const blob=await zip.generateAsync({type:'blob'});
-      const url=URL.createObjectURL(blob), a=document.createElement('a');
+      const url=URL.createObjectURL(blob), fileName=safe(portfolioFileName(r))+'.zip';
+      const a=document.createElement('a');
       a.href=url;
-      a.download=safe(portfolioFileName(r))+'.zip';
-      a.style.display='none';
+      a.download=fileName;
+      a.textContent='Baixar portfólio agora';
+      a.className='portfolio-download-fallback';
+      Object.assign(a.style,{position:'fixed',right:'18px',bottom:'18px',zIndex:'99999',padding:'14px 18px',borderRadius:'10px',background:'#5f9f1d',color:'#fff',font:'700 14px Arial',textDecoration:'none',boxShadow:'0 4px 16px rgba(0,0,0,.25)'});
       document.body.appendChild(a);
       a.click();
-      a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url),60000);
+      setTimeout(()=>{
+        if(a.isConnected) a.textContent='Clique aqui para baixar o portfólio';
+        setTimeout(()=>{if(a.isConnected)a.remove();URL.revokeObjectURL(url);},30000);
+      },500);
     }catch(e){
       console.error('Falha ao baixar portfólio',e);
       alert('Não foi possível gerar o portfólio. Verifique se os documentos anexados ainda estão disponíveis e tente novamente.');
