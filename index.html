@@ -478,8 +478,8 @@ que os pacotes se tornem LOST.</p>
             <div class="registro-section-title">Seguro</div>
             <div class="insurance-box">
               <label class="check-pill"><input id="sr-insurance-open" type="checkbox"> Seguro foi aberto</label>
-              <label>Resultado<select id="sr-insurance-status"><option value="PENDENTE">Pendente</option><option value="ACEITO">Aceito</option><option value="RECUSADO">Recusado</option><option value="NÃO ACIONADO">Não acionado</option></select></label>
-              <label class="wide">Motivo / observação do seguro<textarea id="sr-insurance-reason" rows="2" placeholder="Ex.: seguradora recusou por documentação incompleta..."></textarea></label>
+              <label>Situação do seguro<select id="sr-insurance-status"><option value="ABERTO - PENDENTE">Aberto - Pendente</option><option value="PAGO">Pago</option><option value="FINALIZADO SEM PAGAMENTO">Finalizado sem Pagamento</option><option value="ADF SEM PENDÊNCIA">ADF Sem Pendência</option><option value="ADF COM PENDÊNCIA">ADF com Pendência</option></select></label>
+              <label class="wide" id="sr-insurance-reason-wrap">Motivo<textarea id="sr-insurance-reason" rows="2" placeholder="Ex.: seguradora recusou por documentação incompleta..."></textarea></label>
             </div>
             <div class="registro-section-title">Documentos para Seguro</div>
             <div class="doc-config-bar"><span>Os nomes abaixo são editáveis. Em <strong>Outros documentos</strong>, você também pode criar uma categoria e definir o nome antes de anexar o arquivo.</span><div><button type="button" class="editor-btn" id="sr-add-other-doc">+ Outro documento com nome</button><button type="button" class="editor-btn" id="sr-add-doc">+ Adicionar documento</button></div></div>

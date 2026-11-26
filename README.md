@@ -101,3 +101,6 @@ Abra `index.html` diretamente ou publique os três arquivos juntos. O armazename
 - O contador **Notas com problema (fora)** agora soma todas as observações (não reconhecidas, revisar layout, NF repetida, ID repetido, atenção e DACE — cada declaração conta 1), **exceto** as repetidas com mesmas informações, que têm o contador próprio. Clicar no contador rola até a lista de observações, onde cada item tem o botão "Ver detalhes".
 - As observações saíram da tela: agora tudo fica dentro de **Notas com problema (fora)**, que é clicável e abre uma janela com a lista (não reconhecidas com Incluir/Não incluir, revisar layout, NF repetida, ID repetido, DACE e avisos), cada uma com "Ver detalhes". Avisos de "Atenção" (ex.: nota com 2 itens) aparecem na janela mas **não** entram na contagem.
 - Documentos com título só "DECLARAÇÃO" (declaração de transporte, sem chave de DANFE) também são reconhecidos como declaração auxiliar de conteúdo e não entram no demonstrativo.
+
+### Situação do seguro
+Opções: **Aberto - Pendente · Pago · Finalizado sem Pagamento · ADF Sem Pendência · ADF com Pendência**. O campo **Motivo** aparece em Finalizado sem Pagamento e nos dois ADF (como o antigo "Recusado"). Registros antigos são convertidos (Pendente → Aberto - Pendente, Aceito → Pago, Recusado → Finalizado sem Pagamento). O portfólio mostra a situação e o motivo.

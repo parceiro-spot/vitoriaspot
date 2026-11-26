@@ -720,15 +720,25 @@ Estimativa do Prejuízo: ${prejuizo}.`;
       };
       qs('#sinistro-report-fill')?.addEventListener('click',()=>{
         const text=source.value||'';
-        const data=fromLine(/^\s*🗓.*?Data\s*:\s*(.+)$/im,text);
-        const hora=fromLine(/^\s*⌚.*?Horário da ocorrência aproximadamente\s*:\s*(.+)$/im,text).replace(/h\s*$/i,'');
+        // rótulo tolerante: ignora emojis/símbolos antes do nome do campo e aceita ":" colado ou com espaço
+        const line=(label)=>fromLine(new RegExp('^[^\\p{L}\\n]*'+label+'[ \\t]*:[ \\t]*(.+)$','imu'),text);
+        const dm=text.match(/(?:^|[^\p{L}\n])Data\s*(?:do\s+(?:fato|sinistro))?\s*:\s*[^\n\d]*(\d{1,2})\s*[\/.\-]\s*(\d{1,2})\s*[\/.\-]\s*(\d{2,4})/imu);
+        const data=dm?`${dm[1].padStart(2,'0')}/${dm[2].padStart(2,'0')}/${dm[3].length===2?'20'+dm[3]:dm[3]}`:line('Data');
+        // horário: o rótulo "Horário da ocorrência" pode quebrar linha ("aproximadamente:" na linha de baixo) e vir longe da data
+        let hora='';
+        const hm=text.match(/Hor[aá]rio\s+(?:da\s+)?ocorr[eê]ncia[\s\S]{0,80}?(\d{1,2})\s*(?:[:hH]\s*(\d{2})?|\s*horas?)/i)||text.match(/(?:^|\n)[^\p{L}\n]*Hor[aá]rio[^\n]*?(\d{1,2})\s*[:hH]\s*(\d{2})?/iu);
+        if(hm){hora=hm[1].padStart(2,'0')+':'+(hm[2]||'00');}
+        if(!hora){const tm=text.match(/Data\s*:[^\n]*?\d{4}[^\n\d]*(\d{1,2})\s*[:hH]\s*(\d{2})/i);if(tm)hora=tm[1].padStart(2,'0')+':'+tm[2];}
         const causa=/\bFURTO\b/i.test(text)?'FURTO':'ROUBO';
-        let motorista=fromLine(/^\s*👤\s*Motorista\s*:\s*(.+)$/im,text);
+        let motorista=line('Motorista');
         if(!motorista){const m=text.match(/^\s*FICHA\s*-\s*(.+)$/im);motorista=m?clean(m[1]):'';}
-        const qtd=fromLine(/^\s*📦❌\s*Quantidade sinistrado\s*:\s*(.+)$/im,text);
-        set('sg-causa',causa);set('sg-motorista',motorista);set('sg-placa',fromLine(/^\s*🚘\s*Placa\s*:\s*(.+)$/im,text).replace(/\s+/g,''));set('sg-data',data);set('sg-datahora',data&&hora?data+' - '+hora:data||hora);set('sg-cpf',fromLine(/^\s*🆔\s*CPF\s*:\s*(.+)$/im,text));set('sg-veiculo',fromLine(/^\s*🚙\s*Veículo\s*:\s*(.+)$/im,text));set('sg-qtd',qtd?(qtd.replace(/\s+pacotes?$/i,'')+' pacotes'):'');set('sg-local',fromLine(/^\s*📍\s*Local\s*\(Endereço\)\s*do fato\s*:\s*(.+)$/im,text));set('sg-prejuizo',fromLine(/^\s*💰.*?Valor do sinistro\s*:\s*(.+)$/im,text));
+        const qtd=line('Quantidade\\s+sinistrad[oa]s?');
+        const cpfRaw=line('CPF'), cpfNum=cpfRaw.replace(/\D/g,'');
+        const cpf=cpfNum.length===11?cpfNum.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4'):cpfRaw;
+        const qtdNum=qtd.replace(/\s+pacotes?$/i,'');
+        set('sg-causa',causa);set('sg-motorista',motorista);set('sg-placa',line('Placa').replace(/\s+/g,'').toUpperCase());set('sg-data',data);set('sg-datahora',data&&hora?data+' - '+hora:data||hora);set('sg-cpf',cpf);set('sg-veiculo',line('Ve[íi]culo'));set('sg-qtd',qtdNum?qtdNum+' pacotes':'');set('sg-local',line('Local\\s*\\(Endere[çc]o\\)\\s*do\\s*fato'));set('sg-prejuizo',fromLine(/^[^\p{L}\n]*Valor\s+do\s+sinistro\s*:\s*(.+)$/imu,text));
         generate();
-        if(reportState)reportState.textContent='Dados preenchidos — confira cidade, causa e local/CEP';
+        if(reportState)reportState.textContent=(hora?'Dados preenchidos':'Dados preenchidos — horário não encontrado, preencha manualmente')+' — confira cidade, causa e local/CEP';
       });
       qs('#sinistro-report-generate')?.addEventListener('click',generate);
       qs('#sinistro-report-copy')?.addEventListener('click',()=>{
