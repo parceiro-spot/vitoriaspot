@@ -14,13 +14,3 @@
 .registro-help{font-size:10px;color:#6d786a;margin:-4px 0 9px}.whatsapp-note-input{width:100%;font:500 12px/1.5 Montserrat,sans-serif;border:1px solid #dce5d8;border-radius:9px;padding:10px;resize:vertical}.registro-form-actions.compact{justify-content:flex-start;margin-top:8px;padding-top:0;border-top:0}
 
 .auto-fill-box{background:#f4f9ee;border:1px dashed #8bc53f;border-radius:12px;padding:6px 14px 12px;margin-bottom:14px}.auto-fill-box .registro-section-title{margin-top:8px}.helper-question{display:flex;align-items:center;gap:12px;margin:14px 0 6px;padding:10px 12px;background:#f7f9f5;border:1px solid #dce5d8;border-radius:10px}.helper-question select{font:600 13px Montserrat,sans-serif;padding:7px 12px;border:1px solid #cfd8cb;border-radius:8px;background:#fff}#sr-helper-fields.hidden{display:none}
-
-/* pastas por mês, grupos de documentos */
-.registro-toolbar{flex-wrap:wrap}.registro-toolbar label{min-width:170px}
-.registro-month.folder{margin:8px 0;border:1px solid #dbe5d4;border-radius:12px;background:#fff;overflow:hidden}
-.registro-folder{display:flex;align-items:center;gap:9px;width:100%;padding:10px 12px;background:#f2f7ee;border:0;cursor:pointer;font:inherit;text-align:left}
-.registro-folder:hover{background:#e7f1df}.registro-month.open .registro-folder{border-bottom:1px solid #dbe5d4}
-.folder-name{font-weight:800;letter-spacing:.8px;color:#1f3a14}.registro-folder .month-count{margin-left:auto}
-.registro-folder-body{padding:6px 8px 8px}.record-cause em{font-style:normal;font-size:9px;background:#eef1ed;border-radius:8px;padding:1px 6px;margin-left:4px;color:#4b5848}
-.doc-group{margin:14px 0 6px}.doc-group-title{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#315326;border-left:4px solid #8bc53f;background:#f2f7ee;padding:7px 11px;border-radius:6px;margin-bottom:8px}
-.doc-group-ajudante .doc-group-title{background:#14213d;color:#fff;border-left-color:#8bc53f}
